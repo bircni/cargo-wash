@@ -31,7 +31,7 @@ pub enum Commander {
     Stats,
     /// Calculate the total size of all target folders
     Size,
-    /// Execute <cargo clean> on all projects
+    /// Execute `cargo clean` on all projects
     Clean,
 }
 

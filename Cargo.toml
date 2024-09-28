@@ -2,10 +2,11 @@
 name = "cargo-wash"
 description = "A tool to clean up your Cargo caches"
 repository = "https://github.com/bircni/cargo-wash"
-version = "0.1.0-beta.1"
+version = "0.1.0-beta.2"
 authors = ["bircni"]
 edition = "2021"
 license = "MIT"
+readme = "README.md"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "wash", "cache", "plugin", "cli"]
 
