@@ -1,0 +1,40 @@
+[package]
+name = "cargo-wash"
+description = "A tool to clean up your Cargo caches"
+repository = "https://github.com/bircni/cargo-wash"
+version = "0.1.0-beta.1"
+authors = ["bircni"]
+edition = "2021"
+license = "MIT"
+categories = ["development-tools::cargo-plugins"]
+keywords = ["cargo", "wash", "cache", "plugin", "cli"]
+
+[dependencies]
+anyhow = "1.0.89"
+clap = { version = "4.5.18", features = ["derive"] }
+comfy-table = "7.1.1"
+log = "0.4.22"
+rayon = "1.10.0"
+simplelog = "0.12.2"
+strum_macros = "0.26.4"
+
+[[bin]]
+name = "cargo-wash"
+path = "src/main.rs"
+
+[lints.rust]
+unsafe_code = "forbid"
+
+[lints.clippy]
+nursery = { level = "deny", priority = 0 }
+pedantic = { level = "deny", priority = 1 }
+enum_glob_use = { level = "deny", priority = 2 }
+# module_name_repetitions = { level = "allow", priority = 3 }
+cast_precision_loss = { level = "allow", priority = 4 }
+cast_possible_truncation = { level = "allow", priority = 5 }
+cast_sign_loss = { level = "allow", priority = 6 }
+# out_of_bounds_indexing = { level = "allow", priority = 7 }
+perf = { level = "warn", priority = 8 }
+style = { level = "warn", priority = 9 }
+unwrap_used = { level = "deny", priority = 10 }
+expect_used = { level = "deny", priority = 11 }
