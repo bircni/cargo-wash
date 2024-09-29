@@ -9,16 +9,30 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: cargo build
         run: cargo build
-
-      - name: cargo test
-        run: cargo test
 
       - name: cargo fmt
         run: cargo fmt --all -- --check
 
       - name: cargo clippy
         run: cargo clippy -- -D warnings
+
+      - name: cargo test
+        run: cargo test
+
+  cargo-deny:
+    strategy:
+      fail-fast: false
+
+    name: cargo-deny
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v1
+        with:
+          rust-version: "1.81.0"
+          log-level: error
+          command: check
