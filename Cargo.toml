@@ -19,6 +19,11 @@ rayon = "1.10.0"
 simplelog = "0.12.2"
 strum_macros = "0.26.4"
 
+[dev-dependencies]
+insta = { version = "1.40", features = ["json"] }
+anyhow = "1.0.89"
+
+
 [[bin]]
 name = "cargo-wash"
 path = "src/main.rs"

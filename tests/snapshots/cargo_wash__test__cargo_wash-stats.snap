@@ -1,0 +1,22 @@
+---
+source: src/test.rs
+expression: help_text
+---
+Print statistics about all projects
+
+Usage: stats [OPTIONS]
+
+Options:
+  -p, --path <PATH>
+          Path to a directory
+          
+          [default: .]
+
+  -d, --dry-run
+          Run the program without making any changes
+
+  -h, --help
+          Print help
+
+  -V, --version
+          Print version

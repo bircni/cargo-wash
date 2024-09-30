@@ -1,6 +1,14 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - "*"
+  pull_request:
+    branches:
+      - main
 
 jobs:
   ci:
@@ -8,8 +16,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
 
       - name: cargo build
         run: cargo build
@@ -36,3 +44,20 @@ jobs:
           rust-version: "1.81.0"
           log-level: error
           command: check
+
+  publish-check:
+    name: Publish Check
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo fetch
+      - name: cargo publish
+        run: cargo publish --dry-run
+
+  typos:
+    name: Typos
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: crate-ci/typos@v1.19.0
