@@ -26,12 +26,14 @@ impl Opts {
 
         if path.is_dir() {
             if path.join("target").is_dir() {
-                if let Some(p) = utils::check_for_cargo_and_target(&path) {
+                if let Some(p) = utils::is_cargo_project(&path) {
                     if self.exclude.contains(&p.get_name()?) {
                         return Ok((projects, self.dry_run));
                     }
                     let size = utils::get_folder_size(path.join("target"))?;
-                    projects.push(Project::new(&p.get_name()?, p, size));
+                    if size > 0 {
+                        projects.push(Project::new(&p.get_name()?, p, size));
+                    }
                 }
             }
 
@@ -40,13 +42,17 @@ impl Opts {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_dir() {
-                            let p = utils::check_for_cargo_and_target(&path);
+                            let p = utils::is_cargo_project(&path);
+
                             if let Some(p) = p {
                                 if self.exclude.contains(&p.get_name()?) {
                                     return Ok((projects, self.dry_run));
                                 }
+
                                 let size = utils::get_folder_size(path.join("target"))?;
-                                projects.push(Project::new(&p.get_name()?, p, size));
+                                if size > 0 {
+                                    projects.push(Project::new(&p.get_name()?, p, size));
+                                }
                             }
                         }
                     }

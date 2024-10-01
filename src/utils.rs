@@ -15,6 +15,9 @@ pub fn total_size_of_projects(projects: &[Project]) -> u64 {
 
 /// Recursively calculate the size of a folder
 pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64> {
+    if !dir.as_ref().exists() {
+        return Ok(0);
+    }
     let mut total_size = 0;
 
     for entry in fs::read_dir(dir)? {
@@ -33,12 +36,11 @@ pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64>
 }
 
 /// Check if a given directory contains both a Cargo.toml file and a target folder
-pub fn check_for_cargo_and_target<P: AsRef<std::path::Path>>(dir: P) -> Option<P> {
+pub fn is_cargo_project<P: AsRef<std::path::Path>>(dir: P) -> Option<P> {
     let path = dir.as_ref();
     let has_cargo_toml = path.join("Cargo.toml").is_file();
-    let has_target_dir = path.join("target").is_dir();
 
-    if has_cargo_toml && has_target_dir {
+    if has_cargo_toml {
         return Some(dir);
     }
 
