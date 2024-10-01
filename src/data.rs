@@ -1,6 +1,7 @@
-use std::{fmt::Display, path::PathBuf};
-
-use anyhow::Context;
+use std::{
+    fmt::Display,
+    path::{Path, PathBuf},
+};
 
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy)]
@@ -57,18 +58,12 @@ pub struct Project {
 }
 
 impl Project {
-    pub fn new<P: AsRef<std::path::Path>>(path: P, size: u64) -> anyhow::Result<Self> {
-        let name = path
-            .as_ref()
-            .file_name()
-            .context("Could not get path")?
-            .to_string_lossy()
-            .to_string();
-        Ok(Self {
-            name,
+    pub fn new<P: AsRef<Path>>(name: &str, path: P, size: u64) -> Self {
+        Self {
+            name: name.to_string(),
             path: path.as_ref().to_path_buf(),
             size: Size::to_size(size),
-        })
+        }
     }
 }
 

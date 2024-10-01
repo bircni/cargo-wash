@@ -1,13 +1,13 @@
-use std::{fs, process::Command};
+use std::{
+    fs,
+    process::Command,
+};
 
 use comfy_table::Table;
-use log::{debug, warn};
+use log::debug;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::{
-    args::Opts,
-    data::{Project, Size},
-};
+use crate::data::{Project, Size};
 
 pub fn total_size_of_projects(projects: &[Project]) -> u64 {
     projects
@@ -48,30 +48,6 @@ pub fn check_for_cargo_and_target<P: AsRef<std::path::Path>>(dir: P) -> Option<P
     None
 }
 
-pub fn check_args(opts: &Opts) -> anyhow::Result<(Vec<Project>, bool)> {
-    let mut projects: Vec<Project> = vec![];
-    if opts.path.is_dir() {
-        match fs::read_dir(&opts.path) {
-            Ok(entries) => {
-                for entry in entries.flatten() {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        let p = check_for_cargo_and_target(&path);
-                        if let Some(p) = p {
-                            let size = get_folder_size(path.join("target"))?;
-                            projects.push(Project::new(p, size)?);
-                        }
-                    }
-                }
-            }
-            Err(e) => warn!("Error reading directory: {}", e),
-        }
-    } else {
-        anyhow::bail!("The provided path is not a directory.");
-    }
-    Ok((projects, opts.dry_run))
-}
-
 pub fn show_stats(projects: &[Project]) {
     let mut table = Table::new();
     table.set_header(vec!["Project", "Size", "Path"]);
@@ -90,12 +66,19 @@ pub fn show_stats(projects: &[Project]) {
     println!("{table}");
 }
 
-pub fn print_status(projects: &[Project], cleaned: &[Project]) {
+pub fn print_status(projects: &[Project], cleaned: &[Project], dry_run: bool) {
+    let str = if dry_run {
+        "Would have cleaned"
+    } else {
+        "Cleaned"
+    };
+    let used_projects = if dry_run { projects } else { cleaned };
+    let total_size = total_size_of_projects(used_projects);
     println!(
-        "Cleaned up: {} ({} Projects)\n {}",
-        Size::to_size(total_size_of_projects(cleaned)),
+        "{str} {} ({} Projects)\nProjects: {}",
+        Size::to_size(total_size),
         projects.len(),
-        cleaned
+        used_projects
             .iter()
             .map(|p| p.name.clone())
             .collect::<Vec<String>>()
@@ -124,20 +107,19 @@ pub fn run_clean(projects: &[Project], dry_run: bool) -> anyhow::Result<()> {
                     if output.status.success() {
                         cleaned_projects.push(project.clone());
                     } else {
-                        let error_message = String::from_utf8_lossy(&output.stderr).to_string();
-                        print_status(projects, &cleaned_projects);
-                        anyhow::bail!("Failed to clean {}: {}", project.name, error_message);
+                        anyhow::bail!(
+                            "Failed to clean {}: {}",
+                            project.name,
+                            String::from_utf8_lossy(&output.stderr)
+                        );
                     }
                 }
-                Err(e) => {
-                    print_status(projects, &cleaned_projects);
-                    anyhow::bail!("Failed to clean {}: {}", project.name, e);
-                }
+                Err(e) => anyhow::bail!("Failed to clean {}: {}", project.name, e),
             }
         }
     }
 
-    print_status(projects, &cleaned_projects);
+    print_status(projects, &cleaned_projects, dry_run);
 
     Ok(())
 }
