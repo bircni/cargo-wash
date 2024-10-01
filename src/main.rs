@@ -1,11 +1,12 @@
 use anyhow::Context;
-use args::Commander;
+use args::commands::Commands;
 use clap::Parser;
 use log::LevelFilter;
 use simplelog::{ColorChoice, TerminalMode};
 
 mod args;
 mod data;
+mod extensions;
 mod utils;
 
 #[cfg(test)]
@@ -33,7 +34,7 @@ fn real_main() -> anyhow::Result<()> {
     )
     .context("Failed to initialize logger")?;
 
-    let args = Commander::parse_from(std::env::args().filter(|a| a != "wash"));
+    let args = Commands::parse_from(std::env::args().filter(|a| a != "wash"));
 
     args.show()
 }

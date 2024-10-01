@@ -9,11 +9,12 @@ Usage: stats [OPTIONS]
 Options:
   -p, --path <PATH>
           Path to a directory
-          
-          [default: .]
 
   -d, --dry-run
           Run the program without making any changes
+
+  -e, --exclude <EXCLUDE>
+          Exclude specific projects (by name)
 
   -h, --help
           Print help

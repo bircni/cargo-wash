@@ -1,5 +1,3 @@
-use std::path::PathBuf;
-
 use clap::Parser;
 
 use crate::{
@@ -7,21 +5,12 @@ use crate::{
     utils::{self, total_size_of_projects},
 };
 
-/// Represents the command line options
-#[derive(Parser)]
-pub struct Opts {
-    /// Path to a directory
-    #[clap(long, short, default_value = ".")]
-    pub path: PathBuf,
-    /// Run the program without making any changes
-    #[clap(short, long)]
-    pub dry_run: bool,
-}
+use super::opts::Opts;
 
 /// Represents the available commands
 #[derive(Parser)]
 #[command(author, version, about)]
-pub enum Commander {
+pub enum Commands {
     /// Print statistics about all projects
     Stats(Opts),
     /// Calculate the total size of all target folders
@@ -30,15 +19,15 @@ pub enum Commander {
     Clean(Opts),
 }
 
-impl Commander {
+impl Commands {
     pub fn show(&self) -> anyhow::Result<()> {
         match self {
             Self::Stats(opts) => {
-                let (projects, _) = utils::check_args(opts)?;
+                let (projects, _) = opts.check_args()?;
                 utils::show_stats(&projects);
             }
             Self::Size(opts) => {
-                let (projects, _) = utils::check_args(opts)?;
+                let (projects, _) = opts.check_args()?;
                 println!(
                     "Total size: {} ({} Projects)",
                     Size::to_size(total_size_of_projects(&projects)),
@@ -46,7 +35,7 @@ impl Commander {
                 );
             }
             Self::Clean(opts) => {
-                let (projects, dry_run) = utils::check_args(opts)?;
+                let (projects, dry_run) = opts.check_args()?;
                 utils::run_clean(&projects, dry_run)?;
             }
         }

@@ -45,7 +45,7 @@ fn cli_snapshot() {
         snapshot_path => "../tests/snapshots",
     }, {
         snapshot_test_cli_command(
-            super::Commander::command().name("cargo_wash"),
+            super::Commands::command().name("cargo_wash"),
             "cargo_wash",
         ).expect("Failed to run snapshot test");
     });
