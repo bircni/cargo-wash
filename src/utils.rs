@@ -1,7 +1,4 @@
-use std::{
-    fs,
-    process::Command,
-};
+use std::{fs, process::Command};
 
 use comfy_table::Table;
 use log::debug;
