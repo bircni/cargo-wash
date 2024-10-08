@@ -1,10 +1,10 @@
 use anyhow::Context;
-use args::commands::Commands;
 use clap::Parser;
+use cli::Commands;
 use log::LevelFilter;
 use simplelog::{ColorChoice, TerminalMode};
 
-mod args;
+mod cli;
 mod data;
 mod extensions;
 mod utils;

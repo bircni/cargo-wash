@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use crate::cli::Language;
+
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy)]
 pub struct Size {
@@ -55,14 +57,16 @@ pub struct Project {
     pub name: String,
     pub path: PathBuf,
     pub size: Size,
+    pub language: Language,
 }
 
 impl Project {
-    pub fn new<P: AsRef<Path>>(name: &str, path: P, size: u64) -> Self {
+    pub fn new<P: AsRef<Path>>(name: &str, path: P, size: u64, lang: Language) -> Self {
         Self {
             name: name.to_string(),
             path: path.as_ref().to_path_buf(),
             size: Size::to_size(size),
+            language: lang,
         }
     }
 }
