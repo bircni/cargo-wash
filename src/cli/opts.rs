@@ -1,35 +1,18 @@
 use std::{fs, path::PathBuf};
 
-use clap::Parser;
 use log::warn;
 
 use crate::{
-    data::{Language, Project},
+    cli::{Language, Opts},
+    data::Project,
     extensions::PathBufExt,
     utils,
 };
 
-/// Represents the command line options
-#[derive(Parser)]
-pub struct Opts {
-    /// Path to a directory
-    #[clap(long, short)]
-    pub path: Option<PathBuf>,
-    /// Run the program without making any changes
-    #[clap(short, long)]
-    pub dry_run: bool,
-    /// Exclude specific projects (by name)
-    #[clap(long, short = 'e')]
-    pub exclude: Vec<String>, // Use a vector to allow multiple exclusions
-    /// Language to filter by
-    #[clap(long, short)]
-    pub language: Option<Language>,
-}
-
 impl Opts {
     pub fn check_args(&self) -> anyhow::Result<(Vec<Project>, bool)> {
         let mut projects: Vec<Project> = vec![];
-        let path = super::clean_path(self.path.clone())?;
+        let path = utils::clean_path(self.path.clone())?;
 
         if path.is_dir() {
             self.check_project(&path, self.language).map(|p| {

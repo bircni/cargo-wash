@@ -12,7 +12,7 @@ keywords = ["cargo", "wash", "cache", "plugin", "cli"]
 
 [dependencies]
 anyhow = "1.0.89"
-clap = { version = "4.5.18", features = ["derive"] }
+clap = { version = "4.5.20", features = ["derive"] }
 comfy-table = "7.1.1"
 log = "0.4.22"
 rayon = "1.10.0"

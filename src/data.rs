@@ -3,7 +3,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use clap::ValueEnum;
+use crate::cli::Language;
 
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy)]
@@ -77,14 +77,4 @@ enum SizeUnit {
     KB,
     MB,
     GB,
-}
-
-#[derive(strum_macros::Display, Clone, Copy, ValueEnum, PartialEq, Eq)]
-pub enum Language {
-    /// `Rust` projects
-    Rust,
-    /// `NodeJS` projects
-    NodeJS,
-    #[clap(skip)]
-    Other,
 }

@@ -1,23 +1,8 @@
-use clap::Parser;
-
 use crate::{
+    cli::Commands,
     data::Size,
     utils::{self, total_size_of_projects},
 };
-
-use super::opts::Opts;
-
-/// Represents the available commands
-#[derive(Parser)]
-#[command(author, version, about)]
-pub enum Commands {
-    /// Print statistics about all projects
-    Stats(Opts),
-    /// Calculate the total size of all target folders
-    Size(Opts),
-    /// Execute `cargo clean` on all projects
-    Clean(Opts),
-}
 
 impl Commands {
     pub fn show(&self) -> anyhow::Result<()> {

@@ -16,8 +16,15 @@ Options:
   -e, --exclude <EXCLUDE>
           Exclude specific projects (by name)
 
+  -l, --language <LANGUAGE>
+          Language to filter by
+
+          Possible values:
+          - rust:    `Rust` projects
+          - node-js: `NodeJS` projects
+
   -h, --help
-          Print help
+          Print help (see a summary with '-h')
 
   -V, --version
           Print version
