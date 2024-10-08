@@ -3,6 +3,8 @@ use std::{
     path::{Path, PathBuf},
 };
 
+use clap::ValueEnum;
+
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy)]
 pub struct Size {
@@ -77,8 +79,9 @@ enum SizeUnit {
     GB,
 }
 
-#[derive(strum_macros::Display, Clone, Copy)]
+#[derive(strum_macros::Display, Clone, Copy, ValueEnum, PartialEq, Eq)]
 pub enum Language {
     Rust,
     NodeJS,
+    Other,
 }

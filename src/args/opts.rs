@@ -21,6 +21,9 @@ pub struct Opts {
     /// Exclude specific projects (by name)
     #[clap(long, short = 'e')]
     pub exclude: Vec<String>, // Use a vector to allow multiple exclusions
+    /// Language to filter by
+    #[clap(long, short)]
+    pub language: Option<Language>,
 }
 
 impl Opts {
@@ -29,7 +32,7 @@ impl Opts {
         let path = super::clean_path(self.path.clone())?;
 
         if path.is_dir() {
-            self.check_project(&path).map(|p| {
+            self.check_project(&path, self.language).map(|p| {
                 if let Some(p) = p {
                     projects.push(p);
                 }
@@ -40,7 +43,7 @@ impl Opts {
                     for entry in entries.flatten() {
                         let path = entry.path();
                         if path.is_dir() {
-                            self.check_project(&path).map(|p| {
+                            self.check_project(&path, self.language).map(|p| {
                                 if let Some(p) = p {
                                     projects.push(p);
                                 }
@@ -57,27 +60,40 @@ impl Opts {
         Ok((projects, self.dry_run))
     }
 
-    fn check_project(&self, path: &PathBuf) -> anyhow::Result<Option<Project>> {
+    fn check_project(
+        &self,
+        path: &PathBuf,
+        lang: Option<Language>,
+    ) -> anyhow::Result<Option<Project>> {
+        let detected_lang = utils::get_project(path);
         let name = &path.get_name()?;
+
         if self.exclude.contains(name) {
             return Ok(None);
         }
-        match utils::get_project(path) {
-            Some(Language::Rust) => {
+
+        if let Some(expected_lang) = lang {
+            if detected_lang != expected_lang {
+                return Ok(None);
+            }
+        }
+
+        match detected_lang {
+            Language::Rust => {
                 let size = utils::get_folder_size(path.join("target"))?;
                 if size > 0 {
                     return Ok(Some(Project::new(name, path, size, Language::Rust)));
                 }
                 Ok(None)
             }
-            Some(Language::NodeJS) => {
+            Language::NodeJS => {
                 let size = utils::get_folder_size(path.join("node_modules"))?;
                 if size > 0 {
                     return Ok(Some(Project::new(name, path, size, Language::NodeJS)));
                 }
                 Ok(None)
             }
-            None => Ok(None),
+            Language::Other => Ok(None),
         }
     }
 }

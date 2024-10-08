@@ -35,16 +35,16 @@ pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64>
     Ok(total_size)
 }
 
-pub fn get_project<P: AsRef<std::path::Path>>(dir: P) -> Option<Language> {
+pub fn get_project<P: AsRef<std::path::Path>>(dir: P) -> Language {
     let path = dir.as_ref();
 
     if path.join("Cargo.toml").is_file() {
-        return Some(Language::Rust);
+        return Language::Rust;
     } else if path.join("package.json").is_file() {
-        return Some(Language::NodeJS);
+        return Language::NodeJS;
     }
 
-    None
+    Language::Other
 }
 
 pub fn show_stats(projects: &[Project]) {
@@ -131,6 +131,9 @@ pub fn run_clean(projects: &[Project], dry_run: bool) -> anyhow::Result<()> {
                 } else {
                     anyhow::bail!("Failed to remove node_modules for {}", project.name);
                 }
+            }
+            Language::Other => {
+                debug!("Skipping project: {:?}", project.name);
             }
         }
     }
