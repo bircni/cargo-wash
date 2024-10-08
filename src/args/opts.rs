@@ -24,30 +24,6 @@ pub struct Opts {
 }
 
 impl Opts {
-    pub fn check_project(&self, path: &PathBuf) -> anyhow::Result<Option<Project>> {
-        let name = &path.get_name()?;
-        if self.exclude.contains(name) {
-            return Ok(None);
-        }
-        match utils::get_project(path) {
-            Some(Language::Rust) => {
-                let size = utils::get_folder_size(path.join("target"))?;
-                if size > 0 {
-                    return Ok(Some(Project::new(name, path, size, Language::Rust)));
-                }
-                Ok(None)
-            }
-            Some(Language::NodeJS) => {
-                let size = utils::get_folder_size(path.join("node_modules"))?;
-                if size > 0 {
-                    return Ok(Some(Project::new(name, path, size, Language::NodeJS)));
-                }
-                Ok(None)
-            }
-            None => Ok(None),
-        }
-    }
-
     pub fn check_args(&self) -> anyhow::Result<(Vec<Project>, bool)> {
         let mut projects: Vec<Project> = vec![];
         let path = super::clean_path(self.path.clone())?;
@@ -79,5 +55,29 @@ impl Opts {
         }
 
         Ok((projects, self.dry_run))
+    }
+
+    fn check_project(&self, path: &PathBuf) -> anyhow::Result<Option<Project>> {
+        let name = &path.get_name()?;
+        if self.exclude.contains(name) {
+            return Ok(None);
+        }
+        match utils::get_project(path) {
+            Some(Language::Rust) => {
+                let size = utils::get_folder_size(path.join("target"))?;
+                if size > 0 {
+                    return Ok(Some(Project::new(name, path, size, Language::Rust)));
+                }
+                Ok(None)
+            }
+            Some(Language::NodeJS) => {
+                let size = utils::get_folder_size(path.join("node_modules"))?;
+                if size > 0 {
+                    return Ok(Some(Project::new(name, path, size, Language::NodeJS)));
+                }
+                Ok(None)
+            }
+            None => Ok(None),
+        }
     }
 }
