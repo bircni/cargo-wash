@@ -1,10 +1,34 @@
-use std::{fs, process::Command};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
+use anyhow::Context;
 use comfy_table::Table;
 use log::debug;
 use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
 
-use crate::data::{Project, Size};
+use crate::{
+    cli::Language,
+    data::{Project, Size},
+};
+
+pub fn clean_path(dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
+    let path = dir.unwrap_or_else(|| PathBuf::from("."));
+    if path == Path::new("/") || path == Path::new(".") {
+        std::env::current_dir().context("Failed to get current directory")
+    } else if path == Path::new("..") {
+        std::env::current_dir()
+            .context("Failed to get current directory")?
+            .parent()
+            .context("Failed to get parent directory")
+            .map(std::path::Path::to_path_buf)
+            .context("Failed to convert parent directory to path")
+    } else {
+        Ok(path)
+    }
+}
 
 pub fn total_size_of_projects(projects: &[Project]) -> u64 {
     projects
@@ -35,26 +59,30 @@ pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64>
     Ok(total_size)
 }
 
-/// Check if a given directory contains both a Cargo.toml file and a target folder
-pub fn is_cargo_project<P: AsRef<std::path::Path>>(dir: P) -> Option<P> {
+pub fn get_language<P: AsRef<std::path::Path>>(dir: P) -> Language {
     let path = dir.as_ref();
-    let has_cargo_toml = path.join("Cargo.toml").is_file();
 
-    if has_cargo_toml {
-        return Some(dir);
+    if path.join("Cargo.toml").is_file() {
+        return Language::Rust;
+    } else if path.join("package.json").is_file() {
+        return Language::NodeJS;
     }
 
-    None
+    Language::Other
 }
 
 pub fn show_stats(projects: &[Project]) {
+    let mut sorted_projects: Vec<Project> = projects.to_vec();
+    sorted_projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
     let mut table = Table::new();
-    table.set_header(vec!["Project", "Size", "Path"]);
-    for project in projects {
+    table.set_header(vec!["Project", "Size", "Path", "Language"]);
+
+    for project in sorted_projects {
         table.add_row(vec![
             &project.name,
             &project.size.to_string(),
             &project.path.to_string_lossy().to_string(),
+            &project.language.to_string(),
         ]);
     }
 
@@ -62,6 +90,7 @@ pub fn show_stats(projects: &[Project]) {
         "Total",
         &Size::to_size(total_size_of_projects(projects)).to_string(),
     ]);
+
     println!("{table}");
 }
 
@@ -89,31 +118,46 @@ pub fn run_clean(projects: &[Project], dry_run: bool) -> anyhow::Result<()> {
     let mut cleaned_projects = vec![];
 
     for project in projects {
-        let target_path = project.path.join("target");
-
+        // Check if the project is Rust or Node.js based on its language type
         if dry_run {
-            debug!("Would remove: {:?}", target_path);
-        } else {
-            debug!("Running `cargo clean` for project: {:?}", project.name);
+            debug!("Would clean: {:?}", project.name);
+            continue;
+        }
+        match project.language {
+            Language::Rust => {
+                debug!("Running `cargo clean` for project: {:?}", project.name);
 
-            let result = Command::new("cargo")
-                .arg("clean")
-                .current_dir(&project.path)
-                .output();
+                let result = Command::new("cargo")
+                    .arg("clean")
+                    .current_dir(&project.path)
+                    .output();
 
-            match result {
-                Ok(output) => {
-                    if output.status.success() {
-                        cleaned_projects.push(project.clone());
-                    } else {
-                        anyhow::bail!(
-                            "Failed to clean {}: {}",
-                            project.name,
-                            String::from_utf8_lossy(&output.stderr)
-                        );
+                match result {
+                    Ok(output) => {
+                        if output.status.success() {
+                            cleaned_projects.push(project.clone());
+                        } else {
+                            anyhow::bail!(
+                                "Failed to clean {}: {}",
+                                project.name,
+                                String::from_utf8_lossy(&output.stderr)
+                            );
+                        }
                     }
+                    Err(e) => anyhow::bail!("Failed to clean {}: {}", project.name, e),
                 }
-                Err(e) => anyhow::bail!("Failed to clean {}: {}", project.name, e),
+            }
+            Language::NodeJS => {
+                debug!("Removing node_modules for project: {:?}", project.name);
+
+                if std::fs::remove_dir_all(project.path.join("node_modules")).is_ok() {
+                    cleaned_projects.push(project.clone());
+                } else {
+                    anyhow::bail!("Failed to remove node_modules for {}", project.name);
+                }
+            }
+            Language::Other => {
+                debug!("Skipping project: {:?}", project.name);
             }
         }
     }
