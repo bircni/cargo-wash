@@ -2,7 +2,7 @@
 name = "cargo-wash"
 description = "A tool to clean up your Cargo caches"
 repository = "https://github.com/bircni/cargo-wash"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["bircni"]
 edition = "2021"
 license = "MIT"

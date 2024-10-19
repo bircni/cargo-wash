@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.2](https://github.com/bircni/cargo-wash/tree/0.2.2) (2024-10-19)
+
+[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.1...0.2.2)
+
+**Implemented enhancements:**
+
+- Add more languages and filter options [\#4](https://github.com/bircni/cargo-wash/pull/4) ([bircni](https://github.com/bircni))
+
 ## [0.2.1](https://github.com/bircni/cargo-wash/tree/0.2.1) (2024-10-01)
 
 [Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.0...0.2.1)
