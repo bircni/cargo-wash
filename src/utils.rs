@@ -59,7 +59,7 @@ pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64>
     Ok(total_size)
 }
 
-pub fn get_project<P: AsRef<std::path::Path>>(dir: P) -> Language {
+pub fn get_language<P: AsRef<std::path::Path>>(dir: P) -> Language {
     let path = dir.as_ref();
 
     if path.join("Cargo.toml").is_file() {

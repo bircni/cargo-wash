@@ -6,7 +6,7 @@ use std::{
 use crate::cli::Language;
 
 /// Represents a size in bytes with a unit
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct Size {
     value: f64,
     unit: SizeUnit,
@@ -71,7 +71,7 @@ impl Project {
     }
 }
 
-#[derive(strum_macros::Display, Clone, Copy)]
+#[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd)]
 enum SizeUnit {
     B,
     KB,

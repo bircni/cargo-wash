@@ -1,6 +1,5 @@
-use std::{fs, path::PathBuf};
-
 use log::warn;
+use std::{fs, path::PathBuf};
 
 use crate::{
     cli::{Language, Opts},
@@ -43,12 +42,12 @@ impl Opts {
         Ok((projects, self.dry_run))
     }
 
-    fn check_project(
+    pub(crate) fn check_project(
         &self,
         path: &PathBuf,
         lang: Option<Language>,
     ) -> anyhow::Result<Option<Project>> {
-        let detected_lang = utils::get_project(path);
+        let detected_lang = utils::get_language(path);
         let name = &path.get_name()?;
 
         if self.exclude.contains(name) {

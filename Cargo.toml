@@ -11,7 +11,7 @@ categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "wash", "cache", "plugin", "cli"]
 
 [dependencies]
-anyhow = "1.0.89"
+anyhow = "1.0.90"
 clap = { version = "4.5.20", features = ["derive"] }
 comfy-table = "7.1.1"
 log = "0.4.22"
@@ -21,7 +21,7 @@ strum_macros = "0.26.4"
 
 [dev-dependencies]
 insta = { version = "1.40", features = ["json"] }
-anyhow = "1.0.89"
+anyhow = "1.0.90"
 
 
 [[bin]]

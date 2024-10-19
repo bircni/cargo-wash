@@ -8,16 +8,16 @@ mod opts;
 #[derive(Parser)]
 #[command(author, version, about)]
 pub enum Commands {
-    /// Print statistics about all projects
+    /// Print statistics about all projects we support
     Stats(Opts),
-    /// Calculate the total size of all target folders
+    /// Calculate the total size of all build/target folders
     Size(Opts),
-    /// Execute `cargo clean` on all projects
+    /// Execute `cargo clean` or similar commands specific to the language on all projects
     Clean(Opts),
 }
 
 /// Represents the command line options
-#[derive(Parser)]
+#[derive(Parser, Default)]
 pub struct Opts {
     /// Path to a directory
     #[clap(long, short)]
@@ -31,13 +31,18 @@ pub struct Opts {
     /// Language to filter by
     #[clap(long, short)]
     pub language: Option<Language>,
+    // Coming later
+    // Custom build folder which should be used for size calculation and cleaning
+    // (e.g. `dist`, `build`, `target`, etc.)
+    // #[clap(long, short)]
+    // pub build_folder: Option<String>,
 }
 
-#[derive(strum_macros::Display, Clone, Copy, ValueEnum, PartialEq, Eq)]
+#[derive(strum_macros::Display, Clone, Copy, ValueEnum, PartialEq, Eq, Debug)]
 pub enum Language {
-    /// `Rust` projects
+    /// `Rust` projects (with `target` folder)
     Rust,
-    /// `NodeJS` projects
+    /// `NodeJS` projects (with `node_modules` folder)
     NodeJS,
     #[allow(dead_code)]
     #[clap(skip)]
