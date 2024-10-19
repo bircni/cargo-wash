@@ -92,6 +92,7 @@ fn test_check_project() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(not(target_os = "windows"))] //Windows does not allow deleting the current executable
 #[test]
 fn test_run_clean() -> anyhow::Result<()> {
     let opts = cli::Opts::default();
