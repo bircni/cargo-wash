@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.3](https://github.com/bircni/cargo-wash/tree/0.2.3) (2024-12-22)
+
+[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.2...0.2.3)
+
+**Implemented enhancements:**
+
+- Minor Updates [\#4](https://github.com/bircni/cargo-wash/pull/5) ([bircni](https://github.com/bircni))
+
 ## [0.2.2](https://github.com/bircni/cargo-wash/tree/0.2.2) (2024-10-19)
 
 [Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.1...0.2.2)
