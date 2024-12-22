@@ -23,6 +23,12 @@ fn main() {
 }
 
 fn real_main() -> anyhow::Result<()> {
+    initialize_logger()?;
+    let args = Commands::parse_from(std::env::args().filter(|a| a != "wash"));
+    args.show()
+}
+
+fn initialize_logger() -> anyhow::Result<()> {
     simplelog::TermLogger::init(
         #[cfg(debug_assertions)]
         LevelFilter::max(),
@@ -32,9 +38,5 @@ fn real_main() -> anyhow::Result<()> {
         TerminalMode::Mixed,
         ColorChoice::Auto,
     )
-    .context("Failed to initialize logger")?;
-
-    let args = Commands::parse_from(std::env::args().filter(|a| a != "wash"));
-
-    args.show()
+    .context("Failed to initialize logger")
 }
