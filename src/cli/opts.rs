@@ -1,12 +1,8 @@
 use log::warn;
 use std::{fs, path::PathBuf};
 
-use crate::{
-    cli::{Language, Opts},
-    data::Project,
-    extensions::PathBufExt,
-    utils,
-};
+pub use crate::cli::Opts;
+use crate::{cli::Language, data::Project, extensions::PathBufExt, utils};
 
 impl Opts {
     pub fn check_args(&self) -> anyhow::Result<(Vec<Project>, bool)> {

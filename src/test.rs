@@ -43,6 +43,33 @@ fn snapshot_test_cli_command(app: Command, cmd_name: &str) -> anyhow::Result<()>
     Ok(())
 }
 
+#[test]
+fn test_commands() {
+    let opts = cli::opts::Opts::default();
+    let commands = cli::Commands::Stats(opts.clone());
+    assert!(commands.show().is_ok());
+    let commands = cli::Commands::Size(opts);
+    assert!(commands.show().is_ok());
+    let opts2 = cli::opts::Opts {
+        path: Some(PathBuf::from("/not_existing")),
+        ..Default::default()
+    };
+    assert!(cli::Commands::Stats(opts2.clone()).show().is_err());
+    assert!(cli::Commands::Size(opts2.clone()).show().is_err());
+    assert!(cli::Commands::Clean(opts2).show().is_err());
+    let opts3 = cli::opts::Opts {
+        path: Some(PathBuf::from(".")),
+        dry_run: true,
+        ..Default::default()
+    };
+    assert!(cli::Commands::Clean(opts3).show().is_ok());
+}
+
+#[test]
+fn test_logger() {
+    assert!(super::initialize_logger().is_ok());
+}
+
 #[allow(clippy::expect_used)]
 #[test]
 fn cli_snapshot() {

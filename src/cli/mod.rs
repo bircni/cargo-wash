@@ -2,7 +2,7 @@ use clap::{Parser, ValueEnum};
 use std::path::PathBuf;
 
 pub mod commands;
-mod opts;
+pub mod opts;
 
 /// Represents the available commands
 #[derive(Parser)]
@@ -17,7 +17,7 @@ pub enum Commands {
 }
 
 /// Represents the command line options
-#[derive(Parser, Default)]
+#[derive(Parser, Default, Clone)]
 pub struct Opts {
     /// Path to a directory
     #[clap(long, short)]
