@@ -8,6 +8,8 @@ use crate::cli;
 use crate::data;
 use crate::utils;
 
+/// From <https://github.com/EmbarkStudios/cargo-deny/blob/f6e40d8eff6a507977b20588c842c53bc0bfd427/src/cargo-deny/main.rs#L369>
+/// Snapshot tests for the CLI commands
 fn snapshot_test_cli_command(app: Command, cmd_name: &str) -> anyhow::Result<()> {
     let mut app = app
         .color(ColorChoice::Never)
@@ -18,10 +20,14 @@ fn snapshot_test_cli_command(app: Command, cmd_name: &str) -> anyhow::Result<()>
     app.write_long_help(&mut buffer)?;
     let help_text = std::str::from_utf8(&buffer)?;
 
+    let snapshot = insta::_macro_support::SnapshotValue::FileText {
+        name: Some(cmd_name.into()),
+        content: help_text,
+    };
+
     if insta::_macro_support::assert_snapshot(
-        cmd_name.into(),
-        help_text,
-        env!("CARGO_MANIFEST_DIR"),
+        snapshot,
+        std::path::Path::new(env!("CARGO_MANIFEST_DIR")),
         "cli-cmd",
         module_path!(),
         file!(),
