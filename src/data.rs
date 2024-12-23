@@ -18,6 +18,8 @@ impl Size {
     }
 
     /// Returns the size in bytes
+    #[allow(clippy::cast_possible_truncation)]
+    #[allow(clippy::cast_sign_loss)]
     pub fn size_in_bytes(&self) -> u64 {
         let multiplier = match self.unit {
             SizeUnit::B => 1,
@@ -29,6 +31,7 @@ impl Size {
     }
 
     /// Converts a size in bytes to a `Size` struct
+    #[allow(clippy::cast_precision_loss)]
     pub fn to_size(bytes: u64) -> Self {
         const KB: u64 = 1024;
         const MB: u64 = KB * 1024;

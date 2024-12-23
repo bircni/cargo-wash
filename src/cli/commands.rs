@@ -5,6 +5,7 @@ use crate::{
 };
 
 impl Commands {
+    /// Show the output for the command selected
     pub fn show(&self) -> anyhow::Result<()> {
         match self {
             Self::Stats(opts) => {
