@@ -30,6 +30,7 @@ path = "src/main.rs"
 
 [lints.rust]
 unsafe_code = "forbid"
+deprecated = "warn"
 
 [lints.clippy]
 complexity = "warn"
@@ -38,5 +39,4 @@ nursery = "warn"
 pedantic = "warn"
 perf = "warn"
 style = "warn"
-suspicions = "warn"
-deprecated = "warn"
+suspicious = "warn"
