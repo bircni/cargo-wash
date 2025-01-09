@@ -1,13 +1,13 @@
 use std::{
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
 
-use anyhow::Context;
+use anyhow::Context as _;
 use comfy_table::Table;
 use log::debug;
-use rayon::iter::{IntoParallelRefIterator, ParallelIterator};
+use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
 use crate::{
     cli::Language,
@@ -17,13 +17,13 @@ use crate::{
 pub fn clean_path(dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
     let path = dir.unwrap_or_else(|| PathBuf::from("."));
     if path == Path::new("/") || path == Path::new(".") {
-        std::env::current_dir().context("Failed to get current directory")
+        env::current_dir().context("Failed to get current directory")
     } else if path == Path::new("..") {
-        std::env::current_dir()
+        env::current_dir()
             .context("Failed to get current directory")?
             .parent()
             .context("Failed to get parent directory")
-            .map(std::path::Path::to_path_buf)
+            .map(Path::to_path_buf)
             .context("Failed to convert parent directory to path")
     } else {
         Ok(path)
@@ -38,14 +38,14 @@ pub fn total_size_of_projects(projects: &[Project]) -> u64 {
 }
 
 /// Recursively calculate the size of a folder
-pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64> {
+pub fn get_folder_size<P: AsRef<Path>>(dir: P) -> anyhow::Result<u64> {
     if !dir.as_ref().exists() {
         return Ok(0);
     }
     let mut total_size = 0;
 
-    for entry in fs::read_dir(dir)? {
-        let entry = entry?;
+    for entry_res in fs::read_dir(dir)? {
+        let entry = entry_res?;
         let path = entry.path();
         let metadata = fs::metadata(&path)?;
 
@@ -59,7 +59,7 @@ pub fn get_folder_size<P: AsRef<std::path::Path>>(dir: P) -> anyhow::Result<u64>
     Ok(total_size)
 }
 
-pub fn get_language<P: AsRef<std::path::Path>>(dir: P) -> Language {
+pub fn get_language<P: AsRef<Path>>(dir: P) -> Language {
     let path = dir.as_ref();
 
     if path.join("Cargo.toml").is_file() {
@@ -71,6 +71,7 @@ pub fn get_language<P: AsRef<std::path::Path>>(dir: P) -> Language {
     Language::Other
 }
 
+#[expect(clippy::print_stdout, reason = "No other way to show the stats")]
 pub fn show_stats(projects: &[Project]) {
     let mut sorted_projects: Vec<Project> = projects.to_vec();
     sorted_projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
@@ -90,7 +91,6 @@ pub fn show_stats(projects: &[Project]) {
         "Total",
         &Size::to_size(total_size_of_projects(projects)).to_string(),
     ]);
-
     println!("{table}");
 }
 
@@ -102,7 +102,7 @@ pub fn print_status(projects: &[Project], cleaned: &[Project], dry_run: bool) {
     };
     let used_projects = if dry_run { projects } else { cleaned };
     let total_size = total_size_of_projects(used_projects);
-    println!(
+    log::info!(
         "{str} {} ({} Projects)\nProjects: {}",
         Size::to_size(total_size),
         projects.len(),
@@ -150,7 +150,7 @@ pub fn run_clean(projects: &[Project], dry_run: bool) -> anyhow::Result<()> {
             Language::NodeJS => {
                 debug!("Removing node_modules for project: {:?}", project.name);
 
-                if std::fs::remove_dir_all(project.path.join("node_modules")).is_ok() {
+                if fs::remove_dir_all(project.path.join("node_modules")).is_ok() {
                     cleaned_projects.push(project.clone());
                 } else {
                     anyhow::bail!("Failed to remove node_modules for {}", project.name);

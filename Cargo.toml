@@ -12,7 +12,7 @@ keywords = ["cargo", "wash", "cache", "plugin", "cli"]
 
 [dependencies]
 anyhow = "1.0.95"
-clap = { version = "4.5.23", features = ["derive"] }
+clap = { version = "4.5.26", features = ["derive"] }
 comfy-table = "7.1.3"
 log = "0.4.22"
 rayon = "1.10.0"
@@ -20,7 +20,7 @@ simplelog = "0.12.2"
 strum_macros = "0.26.4"
 
 [dev-dependencies]
-insta = { version = "1.41", features = ["json"] }
+insta = { version = "1.42", features = ["json"] }
 anyhow = "1.0.95"
 
 
@@ -33,10 +33,29 @@ unsafe_code = "forbid"
 deprecated = "warn"
 
 [lints.clippy]
-complexity = "warn"
-correctness = "warn"
-nursery = "warn"
-pedantic = "warn"
-perf = "warn"
-style = "warn"
-suspicious = "warn"
+cargo = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+restriction = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+suspicious = { level = "warn", priority = -1 }
+# Restriction allowed lints
+pattern_type_mismatch = "allow"
+question_mark_used = "allow"
+implicit_return = "allow"
+mod_module_files = "allow"
+missing_docs_in_private_items = "allow"
+std_instead_of_alloc = "allow"
+default_numeric_fallback = "allow"
+separated_literal_suffix = "allow"
+as_conversions = "allow"
+float_arithmetic = "allow"
+min_ident_chars = "allow"
+exit = "allow"
+single_call_fn = "allow"
+arbitrary_source_item_ordering = "allow"
+arithmetic_side_effects = "allow"
+else_if_without_else = "allow"

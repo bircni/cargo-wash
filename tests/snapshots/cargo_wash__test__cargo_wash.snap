@@ -1,15 +1,16 @@
 ---
 source: src/test.rs
 expression: help_text
+snapshot_kind: text
 ---
 A tool to clean up your Cargo caches
 
 Usage: cargo_wash <COMMAND>
 
 Commands:
-  stats  Print statistics about all projects we support
-  size   Calculate the total size of all build/target folders
   clean  Execute `cargo clean` or similar commands specific to the language on all projects
+  size   Calculate the total size of all build/target folders
+  stats  Print statistics about all projects we support
   help   Print this message or the help of the given subcommand(s)
 
 Options:

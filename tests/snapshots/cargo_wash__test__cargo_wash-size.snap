@@ -1,15 +1,13 @@
 ---
 source: src/test.rs
 expression: help_text
+snapshot_kind: text
 ---
 Calculate the total size of all build/target folders
 
 Usage: size [OPTIONS]
 
 Options:
-  -p, --path <PATH>
-          Path to a directory
-
   -d, --dry-run
           Run the program without making any changes
 
@@ -20,8 +18,11 @@ Options:
           Language to filter by
 
           Possible values:
-          - rust:    `Rust` projects (with `target` folder)
           - node-js: `NodeJS` projects (with `node_modules` folder)
+          - rust:    `Rust` projects (with `target` folder)
+
+  -p, --path <PATH>
+          Path to a directory
 
   -h, --help
           Print help (see a summary with '-h')

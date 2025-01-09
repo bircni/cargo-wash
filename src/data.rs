@@ -1,25 +1,23 @@
-use std::{
-    fmt::Display,
-    path::{Path, PathBuf},
-};
+use core::fmt::{self, Display};
+use std::path::{Path, PathBuf};
 
 use crate::cli::Language;
 
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct Size {
-    value: f64,
     unit: SizeUnit,
+    value: f64,
 }
 
 impl Size {
     const fn new(value: f64, unit: SizeUnit) -> Self {
-        Self { value, unit }
+        Self { unit, value }
     }
 
     /// Returns the size in bytes
-    #[allow(clippy::cast_possible_truncation)]
-    #[allow(clippy::cast_sign_loss)]
+    #[expect(clippy::cast_possible_truncation, reason = "Ok here")]
+    #[expect(clippy::cast_sign_loss, reason = "Ok here")]
     pub fn size_in_bytes(&self) -> u64 {
         let multiplier = match self.unit {
             SizeUnit::B => 1,
@@ -31,7 +29,7 @@ impl Size {
     }
 
     /// Converts a size in bytes to a `Size` struct
-    #[allow(clippy::cast_precision_loss)]
+    #[expect(clippy::cast_precision_loss, reason = "Ok here")]
     pub fn to_size(bytes: u64) -> Self {
         const KB: u64 = 1024;
         const MB: u64 = KB * 1024;
@@ -50,23 +48,23 @@ impl Size {
 }
 
 impl Display for Size {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{:.2} {}", self.value, self.unit)
     }
 }
 
 #[derive(Clone)]
 pub struct Project {
+    pub language: Language,
     pub name: String,
     pub path: PathBuf,
     pub size: Size,
-    pub language: Language,
 }
 
 impl Project {
     pub fn new<P: AsRef<Path>>(name: &str, path: P, size: u64, lang: Language) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.to_owned(),
             path: path.as_ref().to_path_buf(),
             size: Size::to_size(size),
             language: lang,
@@ -77,7 +75,7 @@ impl Project {
 #[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd)]
 enum SizeUnit {
     B,
+    GB,
     KB,
     MB,
-    GB,
 }
