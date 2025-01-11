@@ -14,7 +14,7 @@ impl Commands {
             }
             Self::Size(opts) => {
                 let (projects, _) = opts.check_args()?;
-                println!(
+                log::info!(
                     "Total size: {} ({} Projects)",
                     Size::to_size(total_size_of_projects(&projects)),
                     projects.len()

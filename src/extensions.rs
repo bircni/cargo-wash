@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use anyhow::Context;
+use anyhow::Context as _;
 
 pub trait PathBufExt {
     /// Get the name of the file or directory

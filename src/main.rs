@@ -1,5 +1,11 @@
-use anyhow::Context;
-use clap::Parser;
+#![allow(
+    clippy::blanket_clippy_restriction_lints,
+    reason = "I want it thaaat way"
+)]
+use std::{env, process::exit};
+
+use anyhow::Context as _;
+use clap::Parser as _;
 use cli::Commands;
 use log::LevelFilter;
 use simplelog::{ColorChoice, TerminalMode};
@@ -7,24 +13,23 @@ use simplelog::{ColorChoice, TerminalMode};
 mod cli;
 mod data;
 mod extensions;
-mod utils;
-
 #[cfg(test)]
 mod test;
+mod utils;
 
 fn main() {
     match real_main() {
         Ok(()) => {}
         Err(e) => {
             log::error!("{:#}", e);
-            std::process::exit(1);
+            exit(1);
         }
     }
 }
 
 fn real_main() -> anyhow::Result<()> {
     initialize_logger()?;
-    let args = Commands::parse_from(std::env::args().filter(|a| a != "wash"));
+    let args = Commands::parse_from(env::args().filter(|a| a != "wash"));
     args.show()
 }
 
