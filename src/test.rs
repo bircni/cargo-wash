@@ -11,6 +11,11 @@ use crate::cli;
 use crate::data;
 use crate::utils;
 
+#[test]
+fn test_logger() {
+    super::initialize_logger().unwrap();
+}
+
 /// From <https://github.com/EmbarkStudios/cargo-deny/blob/f6e40d8eff6a507977b20588c842c53bc0bfd427/src/cargo-deny/main.rs#L369>
 /// Snapshot tests for the CLI commands
 #[expect(clippy::panic, reason = "Snapshot failed")]
@@ -119,11 +124,6 @@ fn test_get_folder_size() {
 fn test_get_project() {
     assert_eq!(utils::get_language("."), cli::Language::Rust);
     assert_eq!(utils::get_language("src"), cli::Language::Other);
-}
-
-#[test]
-fn test_logger() {
-    super::initialize_logger().unwrap();
 }
 
 #[cfg(not(target_os = "windows"))] //Windows does not allow deleting the current executable
