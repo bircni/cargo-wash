@@ -1,14 +1,9 @@
-#![allow(
-    clippy::blanket_clippy_restriction_lints,
-    reason = "I want it thaaat way"
-)]
-use std::{env, process::exit};
-
 use anyhow::Context as _;
 use clap::Parser as _;
 use cli::Commands;
 use log::LevelFilter;
 use simplelog::{ColorChoice, TerminalMode};
+use std::{env, process::exit};
 
 mod cli;
 mod data;

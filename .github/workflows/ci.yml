@@ -11,19 +11,41 @@ on:
       - main
 
 jobs:
-  ci:
-    name: CI on ${{ matrix.os }}
-    runs-on: ${{matrix.os}}
+  build:
+    name: Build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo build
         run: cargo build
+
+  check:
+    name: Check on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: 1.85
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
 
       - name: cargo fmt
         run: cargo fmt --all -- --check
