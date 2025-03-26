@@ -1,9 +1,8 @@
 ---
 source: src/test.rs
 expression: help_text
-snapshot_kind: text
 ---
-Print statistics about all projects we support
+Print statistics about all Rust projects in the directory
 
 Usage: stats [OPTIONS]
 
@@ -11,21 +10,11 @@ Options:
   -d, --dry-run
           Run the program without making any changes
 
-  -e, --exclude <EXCLUDE>
-          Exclude specific projects (by name)
-
-  -l, --language <LANGUAGE>
-          Language to filter by
-
-          Possible values:
-          - node-js: `NodeJS` projects (with `node_modules` folder)
-          - rust:    `Rust` projects (with `target` folder)
-
   -p, --path <PATH>
           Path to a directory
 
   -h, --help
-          Print help (see a summary with '-h')
+          Print help
 
   -V, --version
           Print version

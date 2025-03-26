@@ -1,8 +1,6 @@
 use core::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
-use crate::cli::Language;
-
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy, PartialEq, PartialOrd)]
 pub struct Size {
@@ -55,19 +53,17 @@ impl Display for Size {
 
 #[derive(Clone)]
 pub struct Project {
-    pub language: Language,
     pub name: String,
     pub path: PathBuf,
     pub size: Size,
 }
 
 impl Project {
-    pub fn new<P: AsRef<Path>>(name: &str, path: P, size: u64, lang: Language) -> Self {
+    pub fn new<P: AsRef<Path>>(name: &str, path: P, size: u64) -> Self {
         Self {
             name: name.to_owned(),
             path: path.as_ref().to_path_buf(),
             size: Size::to_size(size),
-            language: lang,
         }
     }
 }

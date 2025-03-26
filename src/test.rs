@@ -59,13 +59,10 @@ fn snapshot_test_cli_command(app: Command, cmd_name: &str) {
 
 #[test]
 fn test_check_project() {
-    let opts = cli::Opts::default();
-    let res = opts
-        .check_project(&PathBuf::from("../cargo-wash"), Some(cli::Language::Rust))
+    let res = utils::check_project(&PathBuf::from("../cargo-wash"))
         .unwrap()
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
-    assert!(res.language == cli::Language::Rust);
     assert!(res.name == "cargo-wash");
     assert!(res.path == PathBuf::from("../cargo-wash"));
 }
@@ -95,21 +92,17 @@ fn test_cli_snapshot() {
 #[test]
 fn test_commands() {
     let opts = cli::Opts::default();
-    let command_stats = cli::Commands::Stats(opts.clone());
+    let command_stats = cli::Commands::Stats(opts);
     command_stats.show().unwrap();
-    let command_size = cli::Commands::Size(opts);
-    command_size.show().unwrap();
     let opts2 = cli::Opts {
         path: Some(PathBuf::from("/not_existing")),
         ..Default::default()
     };
     assert!(cli::Commands::Stats(opts2.clone()).show().is_err());
-    assert!(cli::Commands::Size(opts2.clone()).show().is_err());
     assert!(cli::Commands::Clean(opts2).show().is_err());
     let opts3 = cli::Opts {
         path: Some(PathBuf::from(".")),
         dry_run: true,
-        ..Default::default()
     };
     cli::Commands::Clean(opts3).show().unwrap();
 }
@@ -118,12 +111,6 @@ fn test_commands() {
 fn test_get_folder_size() {
     let size = utils::get_folder_size("src").unwrap();
     assert!(size > 0);
-}
-
-#[test]
-fn test_get_project() {
-    assert_eq!(utils::get_language("."), cli::Language::Rust);
-    assert_eq!(utils::get_language("src"), cli::Language::Other);
 }
 
 #[cfg(not(target_os = "windows"))] //Windows does not allow deleting the current executable
