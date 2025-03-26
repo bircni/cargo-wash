@@ -1,7 +1,6 @@
 ---
 source: src/test.rs
 expression: help_text
-snapshot_kind: text
 ---
 Calculate the total size of all build/target folders
 
@@ -14,18 +13,11 @@ Options:
   -e, --exclude <EXCLUDE>
           Exclude specific projects (by name)
 
-  -l, --language <LANGUAGE>
-          Language to filter by
-
-          Possible values:
-          - node-js: `NodeJS` projects (with `node_modules` folder)
-          - rust:    `Rust` projects (with `target` folder)
-
   -p, --path <PATH>
           Path to a directory
 
   -h, --help
-          Print help (see a summary with '-h')
+          Print help
 
   -V, --version
           Print version

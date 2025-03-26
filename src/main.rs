@@ -16,7 +16,7 @@ fn main() {
     match real_main() {
         Ok(()) => {}
         Err(e) => {
-            log::error!("{:#}", e);
+            log::error!("{e:#}");
             exit(1);
         }
     }
