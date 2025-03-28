@@ -2,11 +2,13 @@ use std::{
     env, fs,
     path::{Path, PathBuf},
     process::Command,
+    sync::Arc,
 };
 
 use anyhow::Context as _;
 use comfy_table::Table;
 use log::debug;
+use parking_lot::RwLock;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
 use crate::{
@@ -14,7 +16,7 @@ use crate::{
     extensions::PathBufExt as _,
 };
 
-pub fn clean_path(dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
+pub fn sanitize_path_input(dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
     let path = dir.unwrap_or_else(|| PathBuf::from("."));
     if path == Path::new("/") || path == Path::new(".") {
         env::current_dir().context("Failed to get current directory")
@@ -81,7 +83,12 @@ pub fn show_stats(projects: &[Project]) {
     println!("{table}");
 }
 
-pub fn print_status(projects: &[Project], cleaned: &[Project], dry_run: bool) {
+pub fn print_status(
+    projects: &[Project],
+    cleaned: &[Project],
+    dry_run: bool,
+    exclude: Option<&String>,
+) {
     let str = if dry_run {
         "Would have cleaned"
     } else {
@@ -89,8 +96,10 @@ pub fn print_status(projects: &[Project], cleaned: &[Project], dry_run: bool) {
     };
     let used_projects = if dry_run { projects } else { cleaned };
     let total_size = total_size_of_projects(used_projects);
+
+    let skipped = exclude.map_or_else(String::new, |skip| format!("\n(Skipped: {skip})"));
     log::info!(
-        "{str} {} ({} Projects)\nProjects: {}",
+        "{str} {} ({} Projects)\nProjects: {}{skipped}",
         Size::to_size(total_size),
         projects.len(),
         used_projects
@@ -101,16 +110,14 @@ pub fn print_status(projects: &[Project], cleaned: &[Project], dry_run: bool) {
     );
 }
 
-pub fn run_clean(projects: &[Project], dry_run: bool) -> anyhow::Result<()> {
-    let mut cleaned_projects = vec![];
+pub fn run_clean(projects: &[Project], dry_run: bool, exclude: Option<&String>) {
+    let cleaned_projects = Arc::new(RwLock::new(vec![]));
 
-    for project in projects {
-        // Check if the project is Rust or Node.js based on its language type
+    projects.par_iter().for_each(|project| {
         if dry_run {
             debug!("Would clean: {:?}", project.name);
-            continue;
+            return;
         }
-
         debug!("Running `cargo clean` for project: {:?}", project.name);
 
         let result = Command::new("cargo")
@@ -121,30 +128,46 @@ pub fn run_clean(projects: &[Project], dry_run: bool) -> anyhow::Result<()> {
         match result {
             Ok(output) => {
                 if output.status.success() {
-                    cleaned_projects.push(project.clone());
+                    cleaned_projects.write().push(project.clone());
                 } else {
-                    anyhow::bail!(
+                    log::error!(
                         "Failed to clean {}: {}",
                         project.name,
                         String::from_utf8_lossy(&output.stderr)
                     );
                 }
             }
-            Err(e) => anyhow::bail!("Failed to clean {}: {}", project.name, e),
+            Err(e) => log::error!("Failed to clean {}: {}", project.name, e),
         }
-    }
-
-    print_status(projects, &cleaned_projects, dry_run);
-
-    Ok(())
+    });
+    print_status(projects, &cleaned_projects.read(), dry_run, exclude);
 }
 
-pub fn check_project(path: &PathBuf) -> anyhow::Result<Option<Project>> {
-    let name = &path.get_name()?;
+pub fn check_project(
+    path: &PathBuf,
+    additional_folder: Option<&String>,
+    exclude_folder: Option<&String>,
+) -> anyhow::Result<Option<Project>> {
+    if let Some(exclude) = exclude_folder {
+        if path.to_string_lossy().contains(exclude) {
+            log::debug!("Excluding folder: {exclude}");
+            return Ok(None);
+        }
+        log::debug!("Checking folder: {}", path.to_string_lossy());
+    }
 
-    let size = get_folder_size(path.join("target"))?;
+    let name = &path.get_name()?;
+    let target_size = get_folder_size(path.join("target"))?;
+    let additional_size = if let Some(folder) = additional_folder {
+        get_folder_size(path.join(folder))?
+    } else {
+        0
+    };
+    let size = target_size + additional_size;
+
     if size > 0 {
         return Ok(Some(Project::new(name, path, size)));
     }
+
     Ok(None)
 }
