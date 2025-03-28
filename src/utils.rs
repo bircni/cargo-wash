@@ -89,7 +89,7 @@ pub fn print_status(
     dry_run: bool,
     exclude: Option<&String>,
 ) {
-    let str = if dry_run {
+    let out_title = if dry_run {
         "Would have cleaned"
     } else {
         "Cleaned"
@@ -99,7 +99,7 @@ pub fn print_status(
 
     let skipped = exclude.map_or_else(String::new, |skip| format!("\n(Skipped: {skip})"));
     log::info!(
-        "{str} {} ({} Projects)\nProjects: {}{skipped}",
+        "{out_title} {} ({} Projects)\nProjects: {}{skipped}",
         Size::to_size(total_size),
         projects.len(),
         used_projects
