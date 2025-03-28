@@ -15,13 +15,26 @@ A tool to clean up your Cargo caches
 Usage: cargo-wash <COMMAND>
 
 Commands:
-  stats  Print statistics about all projects
-  size   Calculate the total size of all target folders
-  clean  Execute `cargo clean` on all projects
+  clean  Execute `cargo clean` on all projects to remove build artifacts
+  stats  Print statistics about all Rust projects in the directory
   help   Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
 
+```
+
+## Installation
+
+You can install `cargo-wash` using `cargo`:
+
+```sh
+cargo install cargo-wash
+```
+
+or with `cargo-binstall`:
+
+```sh
+cargo binstall cargo-wash
 ```
