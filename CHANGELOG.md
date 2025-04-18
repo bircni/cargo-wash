@@ -1,49 +1,25 @@
-# Changelog
+# Changelog - [cargo-wash](https://github.com/bircni/cargo-wash)
 
-## [0.2.3](https://github.com/bircni/cargo-wash/tree/0.2.3) (2024-12-22)
+All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.2...0.2.3)
+## [unreleased]
 
-**Implemented enhancements:**
+### Documentation
 
-- Minor Updates [\#4](https://github.com/bircni/cargo-wash/pull/5) ([bircni](https://github.com/bircni))
+- **(README)** fix usage and add installation instructions - ([eb937b1](https://github.com/bircni/cargo-wash/commit/eb937b1e58f8ac46b5ca751c932de5059f37dc13)) - Nicolas
 
-## [0.2.2](https://github.com/bircni/cargo-wash/tree/0.2.2) (2024-10-19)
+### Miscellaneous Chores
 
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.1...0.2.2)
+- **(build-script)** set the version according to tags - ([193e3af](https://github.com/bircni/cargo-wash/commit/193e3afc2400631bf651650bd7e3d90a700ad841)) - Nicolas
 
-**Implemented enhancements:**
+## [1.1.0](https://github.com/bircni/cargo-wash/compare/1.0.0..1.1.0) - 2025-03-28
 
-- Add more languages and filter options [\#4](https://github.com/bircni/cargo-wash/pull/4) ([bircni](https://github.com/bircni))
+### Features
 
-## [0.2.1](https://github.com/bircni/cargo-wash/tree/0.2.1) (2024-10-01)
+- **(options)** add exclude and additional build folder (#11) - ([5c8bd98](https://github.com/bircni/cargo-wash/commit/5c8bd9874854e23f4822bc3a1483af7abd037a75)) - Nicolas
 
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.2.0...0.2.1)
+## [1.0.0](https://github.com/bircni/cargo-wash/compare/0.2.5..1.0.0) - 2025-03-26
 
-**Implemented enhancements:**
+### Miscellaneous Chores
 
-- Improve path parsing & Add excludes [\#3](https://github.com/bircni/cargo-wash/pull/3) ([bircni](https://github.com/bircni))
-
-## [0.2.0](https://github.com/bircni/cargo-wash/tree/0.2.0) (2024-09-30)
-
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.1.0...0.2.0)
-
-**Implemented enhancements:**
-
-- Rebuild [\#2](https://github.com/bircni/cargo-wash/pull/2) ([bircni](https://github.com/bircni))
-
-## [0.1.0](https://github.com/bircni/cargo-wash/tree/0.1.0) (2024-09-29)
-
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.1.0-beta.2...0.1.0)
-
-**Implemented enhancements:**
-
-- Enhancements [\#1](https://github.com/bircni/cargo-wash/pull/1) ([bircni](https://github.com/bircni))
-
-## [0.1.0-beta.2](https://github.com/bircni/cargo-wash/tree/0.1.0-beta.2) (2024-09-28)
-
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/0.1.0-beta.1...0.1.0-beta.2)
-
-## [0.1.0-beta.1](https://github.com/bircni/cargo-wash/tree/0.1.0-beta.1) (2024-09-28)
-
-[Full Changelog](https://github.com/bircni/cargo-wash/compare/d34dbae179114f92758b528eb3b8861d41fc65f8...0.1.0-beta.1)
+- **(refactoring)** removing unused features and enhancing the tool (#10) - ([9e3abb2](https://github.com/bircni/cargo-wash/commit/9e3abb2e3a96c9c7cbb4567441ff9fad7748787b)) - Nicolas
