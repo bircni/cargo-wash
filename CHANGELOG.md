@@ -2,11 +2,15 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
-## [unreleased]
+## [1.2.0](https://github.com/bircni/cargo-wash/compare/1.1.0..1.2.0) - 2025-04-18
 
 ### Documentation
 
 - **(README)** fix usage and add installation instructions - ([eb937b1](https://github.com/bircni/cargo-wash/commit/eb937b1e58f8ac46b5ca751c932de5059f37dc13)) - Nicolas
+
+### Features
+
+- add release scripts - ([9df5c27](https://github.com/bircni/cargo-wash/commit/9df5c27f66d698616efa4f2bfa52a1863eb6f2d3)) - Nicolas
 
 ### Miscellaneous Chores
 
