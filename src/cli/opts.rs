@@ -22,7 +22,7 @@ pub struct Opts {
     #[clap(long, short)]
     pub build_folder: Option<String>,
     /// Exclude the provided folder from the size calculation and cleaning
-    /// default is `None` - you can specfy multiple folders separated by `,`
+    /// default is `None` - you can specify multiple folders separated by `,`
     #[clap(long, short)]
     pub exclude: Option<String>,
 }
