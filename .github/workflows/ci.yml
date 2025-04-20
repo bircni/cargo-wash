@@ -12,11 +12,8 @@ on:
 
 jobs:
   build:
-    name: Build on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Build
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -24,18 +21,15 @@ jobs:
           lfs: true
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.85
+          toolchain: 1.86
       - uses: Swatinem/rust-cache@v2
 
       - name: cargo build
         run: cargo build
 
   check:
-    name: Check on ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+    name: Check
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
@@ -43,7 +37,7 @@ jobs:
           lfs: true
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.85
+          toolchain: 1.86
           components: rustfmt, clippy
       - uses: Swatinem/rust-cache@v2
 
@@ -61,22 +55,22 @@ jobs:
       fail-fast: false
 
     name: cargo-deny
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: EmbarkStudios/cargo-deny-action@v1
         with:
-          rust-version: "1.85.0"
+          rust-version: "1.86.0"
           log-level: error
           command: check
 
   publish-check:
     name: Publish Check
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.85
+          toolchain: 1.86
       - uses: actions/checkout@v4
       - uses: Swatinem/rust-cache@v2
       - run: cargo fetch
@@ -85,7 +79,7 @@ jobs:
 
   typos:
     name: Typos
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: crate-ci/typos@master
@@ -95,7 +89,7 @@ jobs:
     steps:
       - uses: dtolnay/rust-toolchain@master
         with:
-          toolchain: 1.85
+          toolchain: 1.86
       - uses: Swatinem/rust-cache@v2
       - uses: actions/checkout@v4
       - name: Machete
