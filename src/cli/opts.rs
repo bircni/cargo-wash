@@ -1,5 +1,4 @@
 use clap::Parser;
-use log::warn;
 use parking_lot::RwLock;
 use rayon::prelude::*;
 use std::fs;
@@ -23,6 +22,7 @@ pub struct Opts {
     #[clap(long, short)]
     pub build_folder: Option<String>,
     /// Exclude the provided folder from the size calculation and cleaning
+    /// default is `None` - you can specfy multiple folders separated by `,`
     #[clap(long, short)]
     pub exclude: Option<String>,
 }
@@ -56,12 +56,12 @@ impl Opts {
                                         projects.write().push(project);
                                     }
                                 }
-                                Err(error) => warn!("Error checking project: {error}"),
+                                Err(error) => log::warn!("Error checking project: {error}"),
                             }
                         }
                     });
                 }
-                Err(error) => warn!("Error reading directory: {error}"),
+                Err(error) => log::warn!("Error reading directory: {error}"),
             }
         } else {
             anyhow::bail!("The provided path is not a directory.");

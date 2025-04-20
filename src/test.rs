@@ -1,11 +1,13 @@
 #![allow(clippy::unwrap_used, reason = "Tests")]
+use anyhow::Context;
 use insta::_macro_support;
+use std::fs;
 use std::path::Path;
 use std::path::PathBuf;
+use std::process::Command;
 use std::str;
 
 use clap::ColorChoice;
-use clap::Command;
 
 use crate::cli;
 use crate::cli::opts::Opts;
@@ -20,7 +22,7 @@ fn test_logger() {
 /// From <https://github.com/EmbarkStudios/cargo-deny/blob/f6e40d8eff6a507977b20588c842c53bc0bfd427/src/cargo-deny/main.rs#L369>
 /// Snapshot tests for the CLI commands
 #[expect(clippy::panic, reason = "Snapshot failed")]
-fn snapshot_test_cli_command(app: Command, cmd_name: &str) {
+fn snapshot_test_cli_command(app: clap::Command, cmd_name: &str) {
     let mut app_cmd = app
         .color(ColorChoice::Never)
         .version("0.0.0")
@@ -115,10 +117,52 @@ fn test_get_folder_size() {
     assert!(size > 0);
 }
 
-#[ignore = "This test is not reliable"]
+// #[ignore = "This test is not reliable"]
 #[test]
 fn test_run_clean() {
     let opts = Opts::default();
     let (projects, _) = opts.check_args().unwrap();
-    utils::run_clean(&projects, false, None);
+    let exclude = "cargo-wash, target".to_owned();
+    let result = utils::run_clean(&projects, false, Some(&exclude));
+    assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
+    assert!(
+        *result.as_ref().unwrap() == 0,
+        "Tests failed: {}",
+        result.unwrap_err()
+    );
+}
+
+#[test]
+fn full_test() {
+    // create example project
+    let example_project = PathBuf::from("example_project");
+    if example_project.exists() {
+        fs::remove_dir_all(&example_project).unwrap();
+    }
+
+    let result: anyhow::Result<()> = (|| {
+        fs::create_dir_all(&example_project)?;
+        Command::new("cargo")
+            .arg("init")
+            .current_dir(&example_project)
+            .output()?;
+
+        Command::new("cargo")
+            .arg("build")
+            .current_dir(&example_project)
+            .output()?;
+
+        let mut opts = Opts::default();
+
+        let exclude = "cargo-wash, target".to_owned();
+        opts.exclude = Some(exclude);
+        let command = cli::Commands::Clean(opts);
+        command.show().context("Could not run command")?;
+        // utils::run_clean(&projects, false, Some(&exclude))?;
+
+        fs::remove_dir_all(&example_project)?;
+        Ok(())
+    })();
+
+    assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
 }

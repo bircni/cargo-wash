@@ -13,7 +13,7 @@ impl Commands {
             }
             Self::Clean(opts) => {
                 let (projects, dry_run) = opts.check_args()?;
-                utils::run_clean(&projects, dry_run, opts.exclude.as_ref());
+                utils::run_clean(&projects, dry_run, opts.exclude.as_ref())?;
             }
         }
 

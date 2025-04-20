@@ -17,7 +17,7 @@ Options:
           Custom additional build folder which should be used for size calculation and cleaning default is `target` (e.g. `dist`, `build`, `target`, etc.)
 
   -e, --exclude <EXCLUDE>
-          Exclude the provided folder from the size calculation and cleaning
+          Exclude the provided folder from the size calculation and cleaning default is `None` - you can specfy multiple folders separated by `,`
 
   -h, --help
           Print help

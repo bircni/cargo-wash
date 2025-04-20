@@ -2,7 +2,7 @@ use core::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
 /// Represents a size in bytes with a unit
-#[derive(Clone, Copy, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Size {
     unit: SizeUnit,
     value: f64,
@@ -51,7 +51,7 @@ impl Display for Size {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Project {
     pub name: String,
     pub path: PathBuf,
@@ -68,7 +68,7 @@ impl Project {
     }
 }
 
-#[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd)]
+#[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd, Debug)]
 enum SizeUnit {
     B,
     GB,
