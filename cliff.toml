@@ -63,7 +63,7 @@ split_commits = false
 # An array of regex based parsers to modify commit messages prior to further processing.
 commit_preprocessors = [
     # Replace issue numbers with link templates to be updated in `changelog.postprocessors`.
-    #{ pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/orhun/git-cliff/issues/${2}))"},
+    { pattern = '\((\w+\s)?#([0-9]+)\)', replace = "([#${2}](https://github.com/bircni/cargo-wash/issues/${2}))" },
 ]
 # An array of regex based parsers for extracting data from the commit message.
 # Assigns commits to groups.
@@ -78,6 +78,7 @@ commit_parsers = [
     { message = "^revert", group = "Revert" },
     { message = "^test", group = "Tests" },
     { message = "^release.*", skip = true },
+    { message = "^ci.*", group = "Continuous Integration" },
     { message = "^chore", group = "Miscellaneous Chores" },
     { body = ".*security", group = "Security" },
 ]
