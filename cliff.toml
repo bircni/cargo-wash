@@ -79,6 +79,7 @@ commit_parsers = [
     { message = "^test", group = "Tests" },
     { message = "^release.*", skip = true },
     { message = "^ci.*", group = "Continuous Integration" },
+    { message = "^lint.*", group = "Linting" },
     { message = "^chore", group = "Miscellaneous Chores" },
     { body = ".*security", group = "Security" },
 ]
