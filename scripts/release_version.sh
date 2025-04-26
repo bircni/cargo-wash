@@ -31,7 +31,7 @@ fi
 echo "Calculated version: $version"
 echo "Updating version in Cargo.toml..."
 cargo verset -v "$version"
-echo "Version updated successfully in Cargo.toml."
+echo "Version updated successfully in Cargo.toml and Cargo.lock."
 
 # Generate the changelog
 echo "Generating changelog..."
@@ -46,7 +46,7 @@ if [ "$answer" != "y" ]; then
 fi
 
 # Commit changes
-git add Cargo.toml CHANGELOG.md
+git add Cargo.toml CHANGELOG.md Cargo.lock
 git commit -m "release($version)"
 git tag -a "$version" -m "Release $version"
 
