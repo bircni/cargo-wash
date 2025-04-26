@@ -2,6 +2,25 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.2.2](https://github.com/bircni/cargo-wash/compare/1.2.1..1.2.2) - 2025-04-26
+
+### Bug Fixes
+
+- typos check - ([244505a](https://github.com/bircni/cargo-wash/commit/244505a6048f75b1f54656faa6af6af96f5edca9)) - Nicolas
+
+### Documentation
+
+- add Cargo.lock to release scripts - ([59a15ad](https://github.com/bircni/cargo-wash/commit/59a15ad656991d60bcddf4b67e419cc544e6f564)) - Nicolas
+- push with follow tags in release script - ([9a0303d](https://github.com/bircni/cargo-wash/commit/9a0303dc32d1d73620852f752b70e63abe7fc97c)) - Nicolas
+
+### Linting
+
+- apply correct lints - ([33caceb](https://github.com/bircni/cargo-wash/commit/33cacebd4cc9768106a24bc1385b7ca6d69d1efb)) - Nicolas
+
+### Refactoring
+
+- rework and move files - ([4ab9fcb](https://github.com/bircni/cargo-wash/commit/4ab9fcb378c850b88cda7497661706b3a5bd5424)) - Nicolas
+
 ## [1.2.1](https://github.com/bircni/cargo-wash/compare/1.2.0..1.2.1) - 2025-04-20
 
 ### Bug Fixes
