@@ -12,7 +12,7 @@ use clap::ColorChoice;
 use crate::cli;
 use crate::cli::opts::Opts;
 use crate::data;
-use crate::utils;
+use crate::logic;
 
 #[test]
 fn test_logger() {
@@ -62,7 +62,7 @@ fn snapshot_test_cli_command(app: clap::Command, cmd_name: &str) {
 
 #[test]
 fn test_check_project() {
-    let res = utils::check_project(&PathBuf::from("../cargo-wash"), None, None)
+    let res = logic::check_project(&PathBuf::from("../cargo-wash"), None, None)
         .unwrap()
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
@@ -72,10 +72,10 @@ fn test_check_project() {
 
 #[test]
 fn test_clean_path() {
-    utils::sanitize_path_input(Some(PathBuf::from("/"))).unwrap();
-    utils::sanitize_path_input(Some(PathBuf::from("."))).unwrap();
-    utils::sanitize_path_input(Some(PathBuf::from(".."))).unwrap();
-    utils::sanitize_path_input(Some(PathBuf::from("test"))).unwrap();
+    logic::sanitize_path_input(Some(PathBuf::from("/"))).unwrap();
+    logic::sanitize_path_input(Some(PathBuf::from("."))).unwrap();
+    logic::sanitize_path_input(Some(PathBuf::from(".."))).unwrap();
+    logic::sanitize_path_input(Some(PathBuf::from("test"))).unwrap();
 }
 
 #[test]
@@ -113,7 +113,7 @@ fn test_commands() {
 
 #[test]
 fn test_get_folder_size() {
-    let size = utils::get_folder_size("src").unwrap();
+    let size = logic::get_folder_size("src").unwrap();
     assert!(size > 0);
 }
 
@@ -123,7 +123,7 @@ fn test_run_clean() {
     let opts = Opts::default();
     let (projects, _) = opts.check_args().unwrap();
     let exclude = "cargo-wash, target".to_owned();
-    let result = utils::run_clean(&projects, false, Some(&exclude));
+    let result = logic::run_clean(&projects, false, Some(&exclude));
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
     assert!(
         *result.as_ref().unwrap() == 0,

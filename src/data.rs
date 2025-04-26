@@ -1,6 +1,19 @@
 use core::fmt::{self, Display};
 use std::path::{Path, PathBuf};
 
+/// Represents the size unit
+/// B = Bytes
+/// KB = Kilobytes
+/// MB = Megabytes
+/// GB = Gigabytes
+#[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd, Debug)]
+enum SizeUnit {
+    B,
+    GB,
+    KB,
+    MB,
+}
+
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Size {
@@ -51,6 +64,8 @@ impl Display for Size {
     }
 }
 
+/// Represents a Rust project
+/// with its name, path, and size
 #[derive(Clone, Debug)]
 pub struct Project {
     pub name: String,
@@ -66,12 +81,4 @@ impl Project {
             size: Size::to_size(size),
         }
     }
-}
-
-#[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd, Debug)]
-enum SizeUnit {
-    B,
-    GB,
-    KB,
-    MB,
 }

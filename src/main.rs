@@ -8,9 +8,9 @@ use std::{env, process::exit};
 mod cli;
 mod data;
 mod extensions;
+mod logic;
 #[cfg(test)]
 mod test;
-mod utils;
 
 fn main() {
     match real_main() {

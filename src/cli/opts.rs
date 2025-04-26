@@ -1,11 +1,11 @@
 use clap::Parser;
 use parking_lot::RwLock;
-use rayon::prelude::*;
+use rayon::iter::{ParallelBridge as _, ParallelIterator as _};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::{data::Project, utils};
+use crate::{data::Project, logic};
 
 /// Represents the command line options
 #[derive(Parser, Default, Clone)]
@@ -30,10 +30,10 @@ pub struct Opts {
 impl Opts {
     pub fn check_args(&self) -> anyhow::Result<(Vec<Project>, bool)> {
         let projects: Arc<RwLock<Vec<Project>>> = Arc::new(RwLock::new(vec![]));
-        let path = utils::sanitize_path_input(self.path.clone())?;
+        let path = logic::sanitize_path_input(self.path.clone())?;
 
         if path.is_dir() {
-            utils::check_project(&path, self.build_folder.as_ref(), self.exclude.as_ref()).map(
+            logic::check_project(&path, self.build_folder.as_ref(), self.exclude.as_ref()).map(
                 |p_opt| {
                     if let Some(project) = p_opt {
                         projects.write().push(project);
@@ -46,7 +46,7 @@ impl Opts {
                     entries.flatten().par_bridge().for_each(|entry| {
                         let pathbuf = entry.path();
                         if pathbuf.is_dir() {
-                            match utils::check_project(
+                            match logic::check_project(
                                 &pathbuf,
                                 self.build_folder.as_ref(),
                                 self.exclude.as_ref(),
