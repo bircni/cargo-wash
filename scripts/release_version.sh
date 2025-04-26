@@ -5,6 +5,9 @@ set -e
 # Function to print errors only
 err() { echo "$@" 1>&2; }
 
+# enable push with follow tags
+git config --global push.followTags true
+
 # Check if git-cliff is installed
 if ! command -v git-cliff &> /dev/null; then
     echo "git-cliff is not installed. Please install it first."
@@ -52,3 +55,13 @@ git tag -a "$version" -m "Release $version"
 
 echo "Changes committed and tagged with version $version."
 echo "Don't forget to push the changes to the remote repository."
+
+# Ask for confirmation before pushing
+echo "Do you want to push the changes? (y/n)"
+read -r answer
+if [ "$answer" != "y" ]; then
+    echo "Changes not pushed. Exiting."
+    exit 0
+fi
+git push
+echo "Changes pushed successfully."
