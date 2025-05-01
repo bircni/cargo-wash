@@ -21,7 +21,7 @@ simplelog = "0.12"
 strum_macros = "0.27"
 
 [dev-dependencies]
-insta = { version = "1.42", features = ["json"] }
+insta = { version = "1.43", features = ["json"] }
 
 
 [[bin]]
