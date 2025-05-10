@@ -7,11 +7,8 @@ Print statistics about all Rust projects in the directory
 Usage: stats [OPTIONS]
 
 Options:
-  -d, --dry-run
-          Run the program without making any changes
-
   -p, --path <PATH>
-          Path to a directory
+          Path to the directory from which to start the search for Rust projects default is `.`
 
   -e, --exclude <EXCLUDE>
           Exclude the provided folder from the size calculation and cleaning default is `None` - you can specify multiple folders separated by `,`

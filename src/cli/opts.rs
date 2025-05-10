@@ -10,10 +10,8 @@ use crate::{data::Project, logic};
 /// Represents the command line options
 #[derive(Parser, Default, Clone)]
 pub struct Opts {
-    /// Run the program without making any changes
-    #[clap(short, long)]
-    pub dry_run: bool,
-    /// Path to a directory
+    /// Path to the directory from which to start the search for Rust projects
+    /// default is `.`
     #[clap(long, short)]
     pub path: Option<PathBuf>,
     /// Exclude the provided folder from the size calculation and cleaning
@@ -23,7 +21,7 @@ pub struct Opts {
 }
 
 impl Opts {
-    pub fn check_args(&self) -> anyhow::Result<(Vec<Project>, bool)> {
+    pub fn check_args(&self) -> anyhow::Result<Vec<Project>> {
         let projects: Arc<RwLock<Vec<Project>>> = Arc::new(RwLock::new(vec![]));
         let path = logic::sanitize_path_input(self.path.clone())?;
 
@@ -56,6 +54,6 @@ impl Opts {
             anyhow::bail!("The provided path is not a directory.");
         }
 
-        Ok((projects.read().to_vec(), self.dry_run))
+        Ok(projects.read().to_vec())
     }
 }

@@ -105,7 +105,6 @@ fn test_commands() {
     assert!(cli::Commands::Clean(opts2).show().is_err());
     let opts3 = Opts {
         path: Some(PathBuf::from(".")),
-        dry_run: true,
         ..Default::default()
     };
     cli::Commands::Clean(opts3).show().unwrap();
@@ -121,9 +120,9 @@ fn test_get_folder_size() {
 #[test]
 fn test_run_clean() {
     let opts = Opts::default();
-    let (projects, _) = opts.check_args().unwrap();
+    let projects = opts.check_args().unwrap();
     let exclude = "cargo-wash, target".to_owned();
-    let result = logic::run_clean(&projects, false, Some(&exclude));
+    let result = logic::run_clean(&projects, Some(&exclude));
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
     assert!(
         *result.as_ref().unwrap() == 0,

@@ -82,26 +82,15 @@ pub fn show_stats(projects: &[Project]) {
     println!("{table}");
 }
 
-pub fn print_status(
-    projects: &[Project],
-    cleaned: &[Project],
-    dry_run: bool,
-    exclude: Option<&String>,
-) {
-    let out_title = if dry_run {
-        "Would have cleaned"
-    } else {
-        "Cleaned"
-    };
-    let used_projects = if dry_run { projects } else { cleaned };
-    let total_size = total_size_of_projects(used_projects);
+pub fn print_status(projects: &[Project], cleaned: &[Project], exclude: Option<&String>) {
+    let total_size = total_size_of_projects(cleaned);
 
     let skipped = exclude.map_or_else(String::new, |skip| format!("\n(Skipped: {skip})"));
     log::info!(
-        "{out_title} {} ({} Projects)\nProjects: {}{skipped}",
+        "Cleaned {} ({} Projects)\nProjects: {}{skipped}",
         Size::to_size(total_size),
         projects.len(),
-        used_projects
+        cleaned
             .iter()
             .map(|p| p.name.clone())
             .collect::<Vec<String>>()
@@ -109,11 +98,7 @@ pub fn print_status(
     );
 }
 
-pub fn run_clean(
-    projects: &[Project],
-    dry_run: bool,
-    exclude: Option<&String>,
-) -> anyhow::Result<i32> {
+pub fn run_clean(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32> {
     let cleaned_projects = Arc::new(RwLock::new(vec![]));
     let failed_projects = Arc::new(RwLock::new(vec![]));
     // filter excluded projects
@@ -129,7 +114,7 @@ pub fn run_clean(
     }
 
     projects_to_clean.par_iter().for_each(|project| {
-        if dry_run {
+        if cfg!(test) {
             log::debug!("Would clean: {:?}", project.name);
             return;
         }
@@ -151,13 +136,13 @@ pub fn run_clean(
                         project.name,
                         String::from_utf8_lossy(&output.stderr)
                     );
-                    log::debug!("inputs were: {projects:?}, {dry_run:?}, {exclude:?}");
+                    log::debug!("inputs were: {projects:?}, {exclude:?}");
                 }
             }
             Err(e) => log::error!("Failed to clean {}: {}", project.name, e),
         }
     });
-    print_status(projects, &cleaned_projects.read(), dry_run, exclude);
+    print_status(projects, &cleaned_projects.read(), exclude);
     if failed_projects.read().is_empty() {
         log::info!("All projects cleaned successfully.");
         Ok(0)

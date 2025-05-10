@@ -20,12 +20,12 @@ impl Commands {
     pub fn show(&self) -> anyhow::Result<()> {
         match self {
             Self::Stats(opts) => {
-                let (projects, _) = opts.check_args()?;
+                let projects = opts.check_args()?;
                 logic::show_stats(&projects);
             }
             Self::Clean(opts) => {
-                let (projects, dry_run) = opts.check_args()?;
-                logic::run_clean(&projects, dry_run, opts.exclude.as_ref())?;
+                let projects = opts.check_args()?;
+                logic::run_clean(&projects, opts.exclude.as_ref())?;
             }
         }
 
