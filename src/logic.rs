@@ -175,7 +175,6 @@ pub fn run_clean(
 
 pub fn check_project(
     path: &PathBuf,
-    additional_folder: Option<&String>,
     exclude_folder: Option<&String>,
 ) -> anyhow::Result<Option<Project>> {
     if let Some(exclude) = exclude_folder {
@@ -187,13 +186,7 @@ pub fn check_project(
     }
 
     let name = &path.get_name()?;
-    let target_size = get_folder_size(path.join("target"))?;
-    let additional_size = if let Some(folder) = additional_folder {
-        get_folder_size(path.join(folder))?
-    } else {
-        0
-    };
-    let size = target_size + additional_size;
+    let size = get_folder_size(path.join("target"))?;
 
     if size > 0 {
         return Ok(Some(Project::new(name, path, size)));

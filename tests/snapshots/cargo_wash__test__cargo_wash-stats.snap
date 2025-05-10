@@ -13,9 +13,6 @@ Options:
   -p, --path <PATH>
           Path to a directory
 
-  -b, --build-folder <BUILD_FOLDER>
-          Custom additional build folder which should be used for size calculation and cleaning default is `target` (e.g. `dist`, `build`, `target`, etc.)
-
   -e, --exclude <EXCLUDE>
           Exclude the provided folder from the size calculation and cleaning default is `None` - you can specify multiple folders separated by `,`
 

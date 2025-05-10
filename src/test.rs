@@ -62,7 +62,7 @@ fn snapshot_test_cli_command(app: clap::Command, cmd_name: &str) {
 
 #[test]
 fn test_check_project() {
-    let res = logic::check_project(&PathBuf::from("../cargo-wash"), None, None)
+    let res = logic::check_project(&PathBuf::from("../cargo-wash"), None)
         .unwrap()
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
