@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.3.0](https://github.com/bircni/cargo-wash/compare/1.2.2..1.3.0) - 2025-05-10
+
+### Features
+
+- remove additonal target folder - to comply with cargo clean - ([35a171f](https://github.com/bircni/cargo-wash/commit/35a171f8324a0196f24b4026d29a4b9c38e17ba3)) - Nicolas
+- remove dry-run option as this was not working correctly and not being used - ([f7af551](https://github.com/bircni/cargo-wash/commit/f7af551f063dc9934fa2a38dfa30f2eec8787044)) - Nicolas
+
+### Build
+
+- **(deps)** bump insta from 1.43.0 to 1.43.1 ([#12](https://github.com/bircni/cargo-wash/issues/12)) - ([6bfc5de](https://github.com/bircni/cargo-wash/commit/6bfc5deba56c18037542176f139b435d8f525bd7)) - dependabot[bot]
+
 ## [1.2.2](https://github.com/bircni/cargo-wash/compare/1.2.1..1.2.2) - 2025-04-26
 
 ### Bug Fixes

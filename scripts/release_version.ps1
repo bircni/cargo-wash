@@ -44,7 +44,7 @@ if ($confirmation -ne 'y') {
     exit 0
 }
 # Commit the changes
-git add Cargo.toml CHANGELOG.md
+git add Cargo.toml CHANGELOG.md Cargo.lock
 git commit -m "release($version)"
 git tag -a $version -m "Release $version" 
 
