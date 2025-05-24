@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 /// KB = Kilobytes
 /// MB = Megabytes
 /// GB = Gigabytes
-#[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd, Debug)]
+#[derive(strum_macros::Display, Clone, Copy, PartialEq, Eq, PartialOrd, Debug)]
 pub enum SizeUnit {
     B,
     GB,

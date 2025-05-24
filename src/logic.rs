@@ -159,7 +159,7 @@ pub fn run_clean(projects: &[Project], exclude: Option<&String>) -> anyhow::Resu
 }
 
 pub fn run_rebuild(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<()> {
-    let mut cleaned_projects = vec![];
+    let mut rebuilt_projects = vec![];
     let mut failed_projects = vec![];
     // filter excluded projects
     let mut projects_to_rebuild = projects.to_vec();
@@ -201,7 +201,7 @@ pub fn run_rebuild(projects: &[Project], exclude: Option<&String>) -> anyhow::Re
 
         match result {
             Ok(output) if output.status.success() => {
-                cleaned_projects.push(project.clone());
+                rebuilt_projects.push(project.clone());
                 log::info!("Successfully rebuilt {}", project.name);
             }
             Ok(output) => {
@@ -212,12 +212,15 @@ pub fn run_rebuild(projects: &[Project], exclude: Option<&String>) -> anyhow::Re
                     output.status
                 );
             }
-            Err(e) => log::error!("Failed to rebuild {}: {}", project.name, e),
+            Err(e) => {
+                failed_projects.push(project.clone());
+                log::error!("Failed to rebuild {}: {e}", project.name);
+            }
         }
     }
     log::info!(
         "Rebuilt {} projects successfully, failed to rebuild {} projects.",
-        cleaned_projects.len(),
+        rebuilt_projects.len(),
         failed_projects.len()
     );
     if !failed_projects.is_empty() {

@@ -232,10 +232,10 @@ fn test_to_size() {
 #[test]
 fn test_display() {
     let size = Size::new(1.2345, SizeUnit::MB);
-    assert_eq!(format!("{}", size), "1.23 MB");
+    assert_eq!(format!("{size}"), "1.23 MB");
 
     let size = Size::new(2048.0, SizeUnit::B);
-    assert_eq!(format!("{}", size), "2048.00 B");
+    assert_eq!(format!("{size}"), "2048.00 B");
 }
 
 #[test]
