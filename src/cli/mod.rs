@@ -13,6 +13,8 @@ pub enum Commands {
     Clean(Opts),
     /// Print statistics about all Rust projects in the directory
     Stats(Opts),
+    /// Rebuild all Rust projects in the directory
+    Rebuild(Opts),
 }
 
 impl Commands {
@@ -26,6 +28,10 @@ impl Commands {
             Self::Clean(opts) => {
                 let projects = opts.check_args()?;
                 logic::run_clean(&projects, opts.exclude.as_ref())?;
+            }
+            Self::Rebuild(opts) => {
+                let projects = opts.check_args()?;
+                logic::run_rebuild(&projects, opts.exclude.as_ref())?;
             }
         }
 

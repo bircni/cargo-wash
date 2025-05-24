@@ -7,7 +7,7 @@ use std::path::{Path, PathBuf};
 /// MB = Megabytes
 /// GB = Gigabytes
 #[derive(strum_macros::Display, Clone, Copy, PartialEq, PartialOrd, Debug)]
-enum SizeUnit {
+pub enum SizeUnit {
     B,
     GB,
     KB,
@@ -17,12 +17,12 @@ enum SizeUnit {
 /// Represents a size in bytes with a unit
 #[derive(Clone, Copy, PartialEq, PartialOrd, Debug)]
 pub struct Size {
-    unit: SizeUnit,
-    value: f64,
+    pub unit: SizeUnit,
+    pub value: f64,
 }
 
 impl Size {
-    const fn new(value: f64, unit: SizeUnit) -> Self {
+    pub const fn new(value: f64, unit: SizeUnit) -> Self {
         Self { unit, value }
     }
 
