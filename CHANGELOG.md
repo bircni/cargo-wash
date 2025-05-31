@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.4.0](https://github.com/bircni/cargo-wash/compare/1.3.0..1.4.0) - 2025-05-31
+
+### Features
+
+- rebuild all rust projects ([#14](https://github.com/bircni/cargo-wash/issues/14)) - ([e1616ca](https://github.com/bircni/cargo-wash/commit/e1616ca774e09d19e339e61d3aa87575c1323407)) - Nicolas
+
+### Build
+
+- update to rust 1.87 ([#13](https://github.com/bircni/cargo-wash/issues/13)) - ([13e3c58](https://github.com/bircni/cargo-wash/commit/13e3c582ab87c9a7107204e4c214b0802a293de4)) - Nicolas
+
 ## [1.3.0](https://github.com/bircni/cargo-wash/compare/1.2.2..1.3.0) - 2025-05-10
 
 ### Features
