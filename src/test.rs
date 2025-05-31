@@ -1,4 +1,4 @@
-#![allow(clippy::unwrap_used, reason = "Tests")]
+#![expect(clippy::float_cmp, clippy::similar_names, reason = "Tests")]
 use anyhow::Context;
 use insta::_macro_support;
 use std::fs;
@@ -12,6 +12,8 @@ use clap::ColorChoice;
 use crate::cli;
 use crate::cli::opts::Opts;
 use crate::data;
+use crate::data::Size;
+use crate::data::SizeUnit;
 use crate::logic;
 
 #[test]
@@ -116,9 +118,8 @@ fn test_get_folder_size() {
     assert!(size > 0);
 }
 
-// #[ignore = "This test is not reliable"]
 #[test]
-fn test_run_clean() {
+fn test_run_clean_excluded() {
     let opts = Opts::default();
     let projects = opts.check_args().unwrap();
     let exclude = "cargo-wash, target".to_owned();
@@ -132,12 +133,10 @@ fn test_run_clean() {
 }
 
 #[test]
-fn full_test() {
+fn clean_test() {
     // create example project
-    let example_project = PathBuf::from("example_project");
-    if example_project.exists() {
-        fs::remove_dir_all(&example_project).unwrap();
-    }
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let example_project = tmp_dir.path().join("example_project");
 
     let result: anyhow::Result<()> = (|| {
         fs::create_dir_all(&example_project)?;
@@ -151,17 +150,100 @@ fn full_test() {
             .current_dir(&example_project)
             .output()?;
 
-        let mut opts = Opts::default();
+        let opts = Opts {
+            path: Some(example_project.clone()),
+            ..Default::default()
+        };
 
-        let exclude = "cargo-wash, target".to_owned();
-        opts.exclude = Some(exclude);
         let command = cli::Commands::Clean(opts);
         command.show().context("Could not run command")?;
         // utils::run_clean(&projects, false, Some(&exclude))?;
-
-        fs::remove_dir_all(&example_project)?;
         Ok(())
     })();
 
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
+}
+
+#[test]
+fn rebuild_test() {
+    // create example project
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let example_project = tmp_dir.path().join("example_project");
+
+    let result: anyhow::Result<()> = (|| {
+        fs::create_dir_all(&example_project)?;
+        Command::new("cargo")
+            .arg("init")
+            .current_dir(&example_project)
+            .output()?;
+
+        Command::new("cargo")
+            .arg("build")
+            .current_dir(&example_project)
+            .output()?;
+
+        let opts = Opts {
+            path: Some(example_project.clone()),
+            ..Default::default()
+        };
+
+        let command = cli::Commands::Rebuild(opts);
+        command.show().context("Could not run command")?;
+        Ok(())
+    })();
+
+    assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
+}
+
+#[test]
+fn test_size_in_bytes() {
+    let size_b = Size::new(500.0, SizeUnit::B);
+    assert_eq!(size_b.size_in_bytes(), 500);
+
+    let size_kb = Size::new(1.0, SizeUnit::KB);
+    assert_eq!(size_kb.size_in_bytes(), 1024);
+
+    let size_mb = Size::new(1.0, SizeUnit::MB);
+    assert_eq!(size_mb.size_in_bytes(), 1024 * 1024);
+
+    let size_gb = Size::new(1.0, SizeUnit::GB);
+    assert_eq!(size_gb.size_in_bytes(), 1024 * 1024 * 1024);
+}
+
+#[test]
+fn test_to_size() {
+    let size = Size::to_size(500);
+    assert_eq!(size.unit, SizeUnit::B);
+    assert_eq!(size.value, 500.0);
+
+    let size = Size::to_size(1024);
+    assert_eq!(size.unit, SizeUnit::KB);
+    assert_eq!(size.value, 1.0);
+
+    let size = Size::to_size(1024 * 1024);
+    assert_eq!(size.unit, SizeUnit::MB);
+    assert_eq!(size.value, 1.0);
+
+    let size = Size::to_size(1024 * 1024 * 1024);
+    assert_eq!(size.unit, SizeUnit::GB);
+    assert_eq!(size.value, 1.0);
+}
+
+#[test]
+fn test_display() {
+    let size = Size::new(1.2345, SizeUnit::MB);
+    assert_eq!(format!("{size}"), "1.23 MB");
+
+    let size = Size::new(2048.0, SizeUnit::B);
+    assert_eq!(format!("{size}"), "2048.00 B");
+}
+
+#[test]
+fn test_round_trip_conversion() {
+    let original = Size::new(1.5, SizeUnit::MB);
+    let bytes = original.size_in_bytes();
+    let converted = Size::to_size(bytes);
+
+    assert_eq!(converted.unit, SizeUnit::MB);
+    assert!((converted.value - 1.5).abs() < 0.01);
 }

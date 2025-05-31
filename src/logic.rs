@@ -158,6 +158,81 @@ pub fn run_clean(projects: &[Project], exclude: Option<&String>) -> anyhow::Resu
     }
 }
 
+pub fn run_rebuild(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<()> {
+    let mut rebuilt_projects = vec![];
+    let mut failed_projects = vec![];
+    // filter excluded projects
+    let mut projects_to_rebuild = projects.to_vec();
+
+    if let Some(excluded_projects) = exclude {
+        log::debug!("Excluding folders: {excluded_projects}");
+        excluded_projects
+            .split(',')
+            .for_each(|ex| projects_to_rebuild.retain(|project| project.name != ex.trim()));
+    } else {
+        log::debug!("No folder excluded");
+    }
+
+    log::info!(
+        "Starting clean & rebuild of {} projects - This might take a while",
+        projects_to_rebuild.len()
+    );
+
+    projects_to_rebuild.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+    for project in &projects_to_rebuild {
+        log::debug!("Cleaning project: {:?}", project.name);
+        let clean_result = Command::new("cargo")
+            .arg("clean")
+            .current_dir(&project.path)
+            .output();
+        if let Err(e) = clean_result {
+            log::error!("Failed to clean {}: {}", project.name, e);
+            failed_projects.push(project.clone());
+            continue;
+        }
+
+        log::debug!("Running `cargo build` for project: {:?}", project.name);
+
+        let result = Command::new("cargo")
+            .arg("build")
+            .current_dir(&project.path)
+            .output();
+
+        match result {
+            Ok(output) if output.status.success() => {
+                rebuilt_projects.push(project.clone());
+                log::info!("Successfully rebuilt {}", project.name);
+            }
+            Ok(output) => {
+                failed_projects.push(project.clone());
+                log::error!(
+                    "Failed to rebuild {} with exit code {}",
+                    project.name,
+                    output.status
+                );
+            }
+            Err(e) => {
+                failed_projects.push(project.clone());
+                log::error!("Failed to rebuild {}: {e}", project.name);
+            }
+        }
+    }
+    log::info!(
+        "Rebuilt {} projects successfully, failed to rebuild {} projects.",
+        rebuilt_projects.len(),
+        failed_projects.len()
+    );
+    if !failed_projects.is_empty() {
+        log::warn!("Some projects failed to rebuild: {}", failed_projects.len());
+        anyhow::bail!(
+            "Some projects ({}) failed to rebuild",
+            failed_projects.len()
+        )
+    }
+    Ok(())
+}
+
 pub fn check_project(
     path: &PathBuf,
     exclude_folder: Option<&String>,
