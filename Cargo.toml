@@ -15,7 +15,7 @@ anyhow = "1"
 clap = { version = "4.5", features = ["derive"] }
 comfy-table = "7.1"
 log = "0.4"
-parking_lot = "0.12.3"
+parking_lot = "0.12.4"
 rayon = "1"
 simplelog = "0.12"
 strum_macros = "0.27"
