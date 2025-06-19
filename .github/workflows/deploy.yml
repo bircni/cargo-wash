@@ -13,7 +13,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.87
           override: true
 
       - name: Build cargo-wash
@@ -63,7 +63,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.87
           target: ${{ matrix.target }}
           override: true
 
@@ -108,7 +108,7 @@ jobs:
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
-          toolchain: stable
+          toolchain: 1.87
           override: true
 
       - name: Create Cargo.lock
