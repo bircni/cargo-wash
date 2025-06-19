@@ -6,7 +6,7 @@ use crate::{
 };
 
 pub fn run(projects: &[Project], options: &ExecuteOptions) -> anyhow::Result<()> {
-    let mut rebuilt_projects = vec![];
+    let mut processed_projects = vec![];
     let mut failed_projects = vec![];
     // filter excluded projects
     let mut projects_to_execute = projects.to_vec();
@@ -47,7 +47,7 @@ pub fn run(projects: &[Project], options: &ExecuteOptions) -> anyhow::Result<()>
 
         match result {
             Ok(output) if output.status.success() => {
-                rebuilt_projects.push(project.clone());
+                processed_projects.push(project.clone());
                 log::info!("Successfully executed the command on {}", project.name);
             }
             Ok(output) => {
@@ -66,7 +66,7 @@ pub fn run(projects: &[Project], options: &ExecuteOptions) -> anyhow::Result<()>
     }
     log::info!(
         "Executed the command on {} projects successfully, failed to execute on {} projects.",
-        rebuilt_projects.len(),
+        processed_projects.len(),
         failed_projects.len()
     );
     if !failed_projects.is_empty() {
