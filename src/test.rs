@@ -11,7 +11,9 @@ use clap::ColorChoice;
 
 use crate::cli;
 use crate::cli::opts::CargoCommand;
+use crate::cli::opts::ExecuteOptions;
 use crate::cli::opts::Options;
+use crate::cli::opts::OptionsTrait as _;
 use crate::commands::clean;
 use crate::commands::total_size_of_projects;
 use crate::data;
@@ -168,8 +170,8 @@ fn clean_test() {
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
 }
 
-fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> Options {
-    Options {
+fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> ExecuteOptions {
+    ExecuteOptions {
         path: Some(dir),
         command: Some(cmd),
         ..Default::default()

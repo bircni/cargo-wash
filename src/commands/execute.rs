@@ -1,11 +1,11 @@
 use std::process::Command;
 
 use crate::{
-    cli::opts::{CargoCommand, Options},
+    cli::opts::{CargoCommand, ExecuteOptions},
     data::Project,
 };
 
-pub fn run(projects: &[Project], options: &Options) -> anyhow::Result<()> {
+pub fn run(projects: &[Project], options: &ExecuteOptions) -> anyhow::Result<()> {
     let mut rebuilt_projects = vec![];
     let mut failed_projects = vec![];
     // filter excluded projects
