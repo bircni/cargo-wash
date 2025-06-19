@@ -7,11 +7,12 @@ use std::{env, process::exit};
 use update_available::Source;
 
 mod cli;
+mod commands;
 mod data;
 mod extensions;
-mod logic;
 #[cfg(test)]
 mod test;
+mod utility;
 
 fn main() {
     match real_main() {
@@ -31,7 +32,7 @@ fn real_main() -> anyhow::Result<()> {
         Source::CratesIo,
     );
     let args = Commands::parse_from(env::args().filter(|a| a != "wash"));
-    args.show()
+    args.run()
 }
 
 fn initialize_logger() -> anyhow::Result<()> {

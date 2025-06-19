@@ -13,8 +13,22 @@ Options:
   -e, --exclude <EXCLUDE>
           Exclude the provided folder from the size calculation and cleaning default is `None` - you can specify multiple folders separated by `,`
 
+  -c, --command <COMMAND>
+          The command to execute on the Rust projects It is only used for the `execute` command
+
+          Possible values:
+          - build:  Execute `cargo build`
+          - check:  Execute `cargo check`
+          - doc:    Execute `cargo doc`
+          - clean:  Execute `cargo clean`
+          - run:    Execute `cargo run`
+          - test:   Execute `cargo test`
+          - bench:  Execute `cargo bench`
+          - update: Execute `cargo update`
+          - none:   No command, used for default or no operation
+
   -h, --help
-          Print help
+          Print help (see a summary with '-h')
 
   -V, --version
           Print version

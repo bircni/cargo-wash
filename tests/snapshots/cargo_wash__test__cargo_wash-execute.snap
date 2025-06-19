@@ -2,9 +2,9 @@
 source: src/test.rs
 expression: help_text
 ---
-Execute `cargo clean` on all projects to remove build artifacts
+Execute different commands on all rust projects in the directory
 
-Usage: clean [OPTIONS]
+Usage: execute [OPTIONS]
 
 Options:
   -p, --path <PATH>
