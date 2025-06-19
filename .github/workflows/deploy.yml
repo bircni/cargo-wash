@@ -8,6 +8,8 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Install stable
         uses: actions-rs/toolchain@v1
@@ -58,6 +60,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -66,6 +70,13 @@ jobs:
           toolchain: 1.87
           target: ${{ matrix.target }}
           override: true
+
+      - name: Install musl-tools
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y musl-tools
+          rustup target add x86_64-unknown-linux-musl
 
       - name: Build cargo-wash
         run: |
@@ -102,7 +113,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
 
       - name: Install Rust stable
         uses: actions-rs/toolchain@v1
