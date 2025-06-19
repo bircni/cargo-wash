@@ -3,7 +3,10 @@ pub mod opts;
 use clap::Parser;
 use opts::Options;
 
-use crate::commands::{clean, execute, stats};
+use crate::{
+    cli::opts::{ExecuteOptions, OptionsTrait as _},
+    commands::{clean, execute, stats},
+};
 
 /// Represents the available commands
 #[derive(Parser)]
@@ -14,7 +17,7 @@ pub enum Commands {
     /// Print statistics about all Rust projects in the directory
     Stats(Options),
     /// Execute different commands on all rust projects in the directory
-    Execute(Options),
+    Execute(ExecuteOptions),
 }
 
 impl Commands {

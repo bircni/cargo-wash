@@ -8,13 +8,13 @@ Usage: execute [OPTIONS]
 
 Options:
   -p, --path <PATH>
-          Path to the directory from which to start the search for Rust projects default is `.`
+          Path to the directory from which to start the search for Rust projects
 
   -e, --exclude <EXCLUDE>
-          Exclude the provided folder from the size calculation and cleaning default is `None` - you can specify multiple folders separated by `,`
+          Exclude the provided folder from the size calculation and cleaning You can specify multiple folders separated by commas
 
   -c, --command <COMMAND>
-          The command to execute on the Rust projects It is only used for the `execute` command
+          The command to execute on the Rust projects
 
           Possible values:
           - build:  Execute `cargo build`
