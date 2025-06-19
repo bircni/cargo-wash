@@ -2,6 +2,22 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.6.0](https://github.com/bircni/cargo-wash/compare/1.5.0..1.6.0) - 2025-06-19
+
+### Bug Fixes
+
+- Rename rebuilt_projects to processed_projects for clarity - ([efefd44](https://github.com/bircni/cargo-wash/commit/efefd44d747b1071f36bfef5192de76167534079)) - Nicolas
+
+### Features
+
+- Refactor command handling and add support for executing various cargo commands - ([49f91da](https://github.com/bircni/cargo-wash/commit/49f91da9b312895db65c9960a49d86ce8090414a)) - Nicolas
+- Refactor command options and enhance command handling - ([76bb31e](https://github.com/bircni/cargo-wash/commit/76bb31e9ff712b0aa5ea738e284c9bee6248b195)) - Nicolas
+
+### Build
+
+- update toolchain to 1.87 and bump dependencies versions - ([504a470](https://github.com/bircni/cargo-wash/commit/504a4704132c5333689010c84580508d9f3ab0d8)) - Nicolas
+- fix linux deploy targets - ([315e12a](https://github.com/bircni/cargo-wash/commit/315e12a62a252d7649871d34db9c04cf08e8e9ea)) - Nicolas
+
 ## [1.5.0](https://github.com/bircni/cargo-wash/compare/1.4.0..1.5.0) - 2025-06-08
 
 ### Features
