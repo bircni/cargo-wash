@@ -10,11 +10,15 @@ use std::str;
 use clap::ColorChoice;
 
 use crate::cli;
-use crate::cli::opts::Opts;
+use crate::cli::opts::CargoCommand;
+use crate::cli::opts::Options;
+use crate::commands::clean;
+use crate::commands::total_size_of_projects;
 use crate::data;
+use crate::data::Project;
 use crate::data::Size;
 use crate::data::SizeUnit;
-use crate::logic;
+use crate::utility;
 
 #[test]
 fn test_logger() {
@@ -64,7 +68,7 @@ fn snapshot_test_cli_command(app: clap::Command, cmd_name: &str) {
 
 #[test]
 fn test_check_project() {
-    let res = logic::check_project(&PathBuf::from("../cargo-wash"), None)
+    let res = utility::check_project(&PathBuf::from("../cargo-wash"), None)
         .unwrap()
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
@@ -74,10 +78,10 @@ fn test_check_project() {
 
 #[test]
 fn test_clean_path() {
-    logic::sanitize_path_input(Some(PathBuf::from("/"))).unwrap();
-    logic::sanitize_path_input(Some(PathBuf::from("."))).unwrap();
-    logic::sanitize_path_input(Some(PathBuf::from(".."))).unwrap();
-    logic::sanitize_path_input(Some(PathBuf::from("test"))).unwrap();
+    utility::sanitize_path_input(Some(PathBuf::from("/"))).unwrap();
+    utility::sanitize_path_input(Some(PathBuf::from("."))).unwrap();
+    utility::sanitize_path_input(Some(PathBuf::from(".."))).unwrap();
+    utility::sanitize_path_input(Some(PathBuf::from("test"))).unwrap();
 }
 
 #[test]
@@ -96,34 +100,34 @@ fn test_cli_snapshot() {
 
 #[test]
 fn test_commands() {
-    let opts = Opts::default();
+    let opts = Options::default();
     let command_stats = cli::Commands::Stats(opts);
-    command_stats.show().unwrap();
-    let opts2 = Opts {
+    command_stats.run().unwrap();
+    let opts2 = Options {
         path: Some(PathBuf::from("/not_existing")),
         ..Default::default()
     };
-    assert!(cli::Commands::Stats(opts2.clone()).show().is_err());
-    assert!(cli::Commands::Clean(opts2).show().is_err());
-    let opts3 = Opts {
+    assert!(cli::Commands::Stats(opts2.clone()).run().is_err());
+    assert!(cli::Commands::Clean(opts2).run().is_err());
+    let opts3 = Options {
         path: Some(PathBuf::from(".")),
         ..Default::default()
     };
-    cli::Commands::Clean(opts3).show().unwrap();
+    cli::Commands::Clean(opts3).run().unwrap();
 }
 
 #[test]
 fn test_get_folder_size() {
-    let size = logic::get_folder_size("src").unwrap();
+    let size = utility::get_folder_size("src").unwrap();
     assert!(size > 0);
 }
 
 #[test]
 fn test_run_clean_excluded() {
-    let opts = Opts::default();
+    let opts = Options::default();
     let projects = opts.check_args().unwrap();
     let exclude = "cargo-wash, target".to_owned();
-    let result = logic::run_clean(&projects, Some(&exclude));
+    let result = clean::run(&projects, Some(&exclude));
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
     assert!(
         *result.as_ref().unwrap() == 0,
@@ -150,13 +154,13 @@ fn clean_test() {
             .current_dir(&example_project)
             .output()?;
 
-        let opts = Opts {
+        let opts = Options {
             path: Some(example_project.clone()),
             ..Default::default()
         };
 
         let command = cli::Commands::Clean(opts);
-        command.show().context("Could not run command")?;
+        command.run().context("Could not run command")?;
         // utils::run_clean(&projects, false, Some(&exclude))?;
         Ok(())
     })();
@@ -164,8 +168,16 @@ fn clean_test() {
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
 }
 
+fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> Options {
+    Options {
+        path: Some(dir),
+        command: Some(cmd),
+        ..Default::default()
+    }
+}
+
 #[test]
-fn rebuild_test() {
+fn execute_test() {
     // create example project
     let tmp_dir = tempfile::tempdir().unwrap();
     let example_project = tmp_dir.path().join("example_project");
@@ -182,13 +194,17 @@ fn rebuild_test() {
             .current_dir(&example_project)
             .output()?;
 
-        let opts = Opts {
-            path: Some(example_project.clone()),
-            ..Default::default()
-        };
+        let command = cli::Commands::Execute(generate_test_opts(
+            example_project.clone(),
+            CargoCommand::Build,
+        ));
+        command.run().context("Could not run command")?;
 
-        let command = cli::Commands::Rebuild(opts);
-        command.show().context("Could not run command")?;
+        let command = cli::Commands::Execute(generate_test_opts(
+            example_project.clone(),
+            CargoCommand::Check,
+        ));
+        command.run().context("Could not run command")?;
         Ok(())
     })();
 
@@ -246,4 +262,39 @@ fn test_round_trip_conversion() {
 
     assert_eq!(converted.unit, SizeUnit::MB);
     assert!((converted.value - 1.5).abs() < 0.01);
+}
+
+#[test]
+fn test_pathbufext_get_name() {
+    use crate::extensions::PathBufExt;
+    use std::path::PathBuf;
+
+    // Test mit Datei
+    let file_path = PathBuf::from("foo.txt");
+    let name = file_path.get_name().unwrap();
+    assert_eq!(name, "foo.txt");
+
+    // Test mit Verzeichnis
+    let dir_path = PathBuf::from("bar");
+    let name = dir_path.get_name().unwrap();
+    assert_eq!(name, "bar");
+
+    // Test mit verschachteltem Pfad
+    let nested_path = PathBuf::from("foo/bar/baz");
+    let name = nested_path.get_name().unwrap();
+    assert_eq!(name, "baz");
+
+    // Test mit leerem PathBuf (sollte Fehler liefern)
+    let empty_path = PathBuf::new();
+    let result = empty_path.get_name();
+    result.unwrap_err();
+}
+
+#[test]
+fn test_total_size_of_projects() {
+    let p1 = Project::new("foo", PathBuf::from("/tmp/foo"), 1024);
+    let p2 = Project::new("bar", PathBuf::from("/tmp/bar"), 2048);
+    let projects = vec![p1, p2];
+    let total = total_size_of_projects(&projects);
+    assert_eq!(total, 1024 + 2048);
 }
