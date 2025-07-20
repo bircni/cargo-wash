@@ -45,7 +45,7 @@ pub fn get_folder_size<P: AsRef<Path>>(dir: P) -> anyhow::Result<u64> {
     Ok(total_size)
 }
 
-pub fn check_project(
+pub fn get_project(
     path: &PathBuf,
     exclude_folder: Option<&String>,
 ) -> anyhow::Result<Option<Project>> {
@@ -60,9 +60,11 @@ pub fn check_project(
     let name = &path.get_name()?;
     let size = get_folder_size(path.join("target"))?;
 
-    if size > 0 {
-        return Ok(Some(Project::new(name, path, size)));
+    // Skip non Rust projects
+    if !path.join("Cargo.toml").exists() {
+        log::debug!("Skipping non-Rust project: {name}");
+        return Ok(None);
     }
 
-    Ok(None)
+    Ok(Some(Project::new(name, path, size)))
 }
