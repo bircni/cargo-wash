@@ -117,7 +117,7 @@ where
         let path = utility::sanitize_path_input(self.path().cloned())?;
 
         if path.is_dir() {
-            utility::check_project(&path, self.exclude()).map(|p_opt| {
+            utility::get_project(&path, self.exclude()).map(|p_opt| {
                 if let Some(project) = p_opt {
                     projects.write().push(project);
                 }
@@ -128,7 +128,7 @@ where
                     entries.flatten().par_bridge().for_each(|entry| {
                         let pathbuf = entry.path();
                         if pathbuf.is_dir() {
-                            match utility::check_project(&pathbuf, self.exclude()) {
+                            match utility::get_project(&pathbuf, self.exclude()) {
                                 Ok(p_opt) => {
                                     if let Some(project) = p_opt {
                                         projects.write().push(project);
