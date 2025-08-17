@@ -7,7 +7,7 @@ use anyhow::Context as _;
 
 use crate::{data::Project, extensions::PathBufExt as _};
 
-pub fn sanitize_path_input(dir: PathBuf) -> anyhow::Result<PathBuf> {
+pub fn sanitize_path_input(dir: &PathBuf) -> anyhow::Result<PathBuf> {
     if dir == Path::new("/") || dir == Path::new(".") {
         env::current_dir().context("Failed to get current directory")
     } else if dir == Path::new("..") {
@@ -18,7 +18,7 @@ pub fn sanitize_path_input(dir: PathBuf) -> anyhow::Result<PathBuf> {
             .map(Path::to_path_buf)
             .context("Failed to convert parent directory to path")
     } else {
-        Ok(dir)
+        Ok(dir.clone())
     }
 }
 

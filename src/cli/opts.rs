@@ -5,8 +5,7 @@ use std::fs;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use crate::data::Project;
-use crate::utility;
+use crate::{data::Project, utility};
 
 /// Represents supported Cargo subcommands.
 #[derive(ValueEnum, Default, Clone)]
@@ -79,13 +78,13 @@ pub struct Options {
 
 /// A trait defining common fields shared between options structs.
 pub trait CommonOptions {
-    fn path(&self) -> PathBuf;
+    fn path(&self) -> &PathBuf;
     fn exclude(&self) -> Option<&String>;
 }
 
 impl CommonOptions for Options {
-    fn path(&self) -> PathBuf {
-        self.path.clone()
+    fn path(&self) -> &PathBuf {
+        &self.path
     }
 
     fn exclude(&self) -> Option<&String> {
@@ -94,8 +93,8 @@ impl CommonOptions for Options {
 }
 
 impl CommonOptions for ExecuteOptions {
-    fn path(&self) -> PathBuf {
-        self.path.clone()
+    fn path(&self) -> &PathBuf {
+        &self.path
     }
 
     fn exclude(&self) -> Option<&String> {
