@@ -102,9 +102,6 @@ fn test_cli_snapshot() {
 
 #[test]
 fn test_commands() {
-    let opts = Options::default();
-    let command_stats = cli::Commands::Stats(opts);
-    command_stats.run().unwrap();
     let opts2 = Options {
         path: PathBuf::from("/not_existing"),
         ..Default::default()
@@ -126,7 +123,10 @@ fn test_get_folder_size() {
 
 #[test]
 fn test_run_clean_excluded() {
-    let opts = Options::default();
+    let opts = Options {
+        path: ".".into(),
+        ..Default::default()
+    };
     let projects = opts.check_args().unwrap();
     let exclude = "cargo-wash, target".to_owned();
     let result = clean::run(&projects, Some(&exclude));

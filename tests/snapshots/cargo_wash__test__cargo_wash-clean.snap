@@ -4,12 +4,15 @@ expression: help_text
 ---
 Execute `cargo clean` on all projects to remove build artifacts
 
-Usage: clean [OPTIONS]
+Usage: clean [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]
+          Path to the directory from which to start the search for Rust projects
+          
+          [default: .]
 
 Options:
-  -p, --path <PATH>
-          Path to the directory from which to start the search for Rust projects
-
   -e, --exclude <EXCLUDE>
           Exclude the provided folder from the size calculation and cleaning
 
