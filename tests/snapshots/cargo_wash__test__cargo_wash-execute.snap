@@ -4,12 +4,15 @@ expression: help_text
 ---
 Execute different commands on all rust projects in the directory
 
-Usage: execute [OPTIONS]
+Usage: execute [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]
+          Path to the directory from which to start the search for Rust projects
+          
+          [default: .]
 
 Options:
-  -p, --path <PATH>
-          Path to the directory from which to start the search for Rust projects
-
   -e, --exclude <EXCLUDE>
           Exclude the provided folder from the size calculation and cleaning You can specify multiple folders separated by commas
 

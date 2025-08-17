@@ -4,12 +4,15 @@ expression: help_text
 ---
 Print statistics about all Rust projects in the directory
 
-Usage: stats [OPTIONS]
+Usage: stats [OPTIONS] [PATH]
+
+Arguments:
+  [PATH]
+          Path to the directory from which to start the search for Rust projects
+          
+          [default: .]
 
 Options:
-  -p, --path <PATH>
-          Path to the directory from which to start the search for Rust projects
-
   -e, --exclude <EXCLUDE>
           Exclude the provided folder from the size calculation and cleaning
 
