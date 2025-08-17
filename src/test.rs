@@ -1,26 +1,25 @@
 #![expect(clippy::float_cmp, clippy::similar_names, reason = "Tests")]
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+    str,
+};
+
 use anyhow::Context;
+use clap::{ColorChoice, CommandFactory as _};
 use insta::_macro_support;
-use std::fs;
-use std::path::Path;
-use std::path::PathBuf;
-use std::process::Command;
-use std::str;
 
-use clap::ColorChoice;
-
-use crate::cli;
-use crate::cli::opts::CargoCommand;
-use crate::cli::opts::ExecuteOptions;
-use crate::cli::opts::Options;
-use crate::cli::opts::OptionsTrait as _;
-use crate::commands::clean;
-use crate::commands::total_size_of_projects;
-use crate::data;
-use crate::data::Project;
-use crate::data::Size;
-use crate::data::SizeUnit;
-use crate::utility;
+use crate::{
+    cli::{
+        self,
+        opts::{CargoCommand, ExecuteOptions, Options, OptionsTrait as _},
+    },
+    commands::{clean, total_size_of_projects},
+    data::{self, Project, Size, SizeUnit},
+    extensions::PathBufExt as _,
+    utility,
+};
 
 #[test]
 fn test_logger() {
@@ -80,16 +79,14 @@ fn test_check_project() {
 
 #[test]
 fn test_clean_path() {
-    utility::sanitize_path_input(PathBuf::from("/")).unwrap();
-    utility::sanitize_path_input(PathBuf::from(".")).unwrap();
-    utility::sanitize_path_input(PathBuf::from("..")).unwrap();
-    utility::sanitize_path_input(PathBuf::from("test")).unwrap();
+    utility::sanitize_path_input(&PathBuf::from("/")).unwrap();
+    utility::sanitize_path_input(&PathBuf::from(".")).unwrap();
+    utility::sanitize_path_input(&PathBuf::from("..")).unwrap();
+    utility::sanitize_path_input(&PathBuf::from("test")).unwrap();
 }
 
 #[test]
 fn test_cli_snapshot() {
-    use clap::CommandFactory as _;
-
     insta::with_settings!({
         snapshot_path => "../tests/snapshots",
     }, {
@@ -268,9 +265,6 @@ fn test_round_trip_conversion() {
 
 #[test]
 fn test_pathbufext_get_name() {
-    use crate::extensions::PathBufExt;
-    use std::path::PathBuf;
-
     // Test mit Datei
     let file_path = PathBuf::from("foo.txt");
     let name = file_path.get_name().unwrap();
