@@ -7,11 +7,10 @@ use anyhow::Context as _;
 
 use crate::{data::Project, extensions::PathBufExt as _};
 
-pub fn sanitize_path_input(dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
-    let path = dir.unwrap_or_else(|| PathBuf::from("."));
-    if path == Path::new("/") || path == Path::new(".") {
+pub fn sanitize_path_input(dir: PathBuf) -> anyhow::Result<PathBuf> {
+    if dir == Path::new("/") || dir == Path::new(".") {
         env::current_dir().context("Failed to get current directory")
-    } else if path == Path::new("..") {
+    } else if dir == Path::new("..") {
         env::current_dir()
             .context("Failed to get current directory")?
             .parent()
@@ -19,7 +18,7 @@ pub fn sanitize_path_input(dir: Option<PathBuf>) -> anyhow::Result<PathBuf> {
             .map(Path::to_path_buf)
             .context("Failed to convert parent directory to path")
     } else {
-        Ok(path)
+        Ok(dir)
     }
 }
 

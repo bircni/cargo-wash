@@ -52,8 +52,8 @@ impl CargoCommand {
 #[derive(Parser, Default, Clone)]
 pub struct ExecuteOptions {
     /// Path to the directory from which to start the search for Rust projects
-    #[clap(long, short)]
-    pub path: Option<PathBuf>,
+    #[arg(default_value = ".")]
+    pub path: PathBuf,
 
     /// Exclude the provided folder from the size calculation and cleaning
     /// You can specify multiple folders separated by commas
@@ -69,8 +69,8 @@ pub struct ExecuteOptions {
 #[derive(Parser, Default, Clone)]
 pub struct Options {
     /// Path to the directory from which to start the search for Rust projects
-    #[clap(long, short)]
-    pub path: Option<PathBuf>,
+    #[arg(default_value = ".")]
+    pub path: PathBuf,
 
     /// Exclude the provided folder from the size calculation and cleaning
     #[clap(long, short)]
@@ -79,13 +79,13 @@ pub struct Options {
 
 /// A trait defining common fields shared between options structs.
 pub trait CommonOptions {
-    fn path(&self) -> Option<&PathBuf>;
+    fn path(&self) -> PathBuf;
     fn exclude(&self) -> Option<&String>;
 }
 
 impl CommonOptions for Options {
-    fn path(&self) -> Option<&PathBuf> {
-        self.path.as_ref()
+    fn path(&self) -> PathBuf {
+        self.path.clone()
     }
 
     fn exclude(&self) -> Option<&String> {
@@ -94,8 +94,8 @@ impl CommonOptions for Options {
 }
 
 impl CommonOptions for ExecuteOptions {
-    fn path(&self) -> Option<&PathBuf> {
-        self.path.as_ref()
+    fn path(&self) -> PathBuf {
+        self.path.clone()
     }
 
     fn exclude(&self) -> Option<&String> {
@@ -114,7 +114,7 @@ where
 {
     fn check_args(&self) -> anyhow::Result<Vec<Project>> {
         let projects: Arc<RwLock<Vec<Project>>> = Arc::new(RwLock::new(vec![]));
-        let path = utility::sanitize_path_input(self.path().cloned())?;
+        let path = utility::sanitize_path_input(self.path())?;
 
         if path.is_dir() {
             utility::get_project(&path, self.exclude()).map(|p_opt| {
