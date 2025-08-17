@@ -12,17 +12,17 @@ It can show the size of all your target folders, and delete them if you want.
 ```sh
 A tool to clean up your Cargo caches
 
-Usage: cargo-wash <COMMAND>
+Usage: cargo-wash.exe <COMMAND>
 
 Commands:
-  clean  Execute `cargo clean` on all projects to remove build artifacts
-  stats  Print statistics about all Rust projects in the directory
-  help   Print this message or the help of the given subcommand(s)
+  clean    Execute `cargo clean` on all projects to remove build artifacts
+  stats    Print statistics about all Rust projects in the directory
+  execute  Execute different commands on all rust projects in the directory
+  help     Print this message or the help of the given subcommand(s)
 
 Options:
   -h, --help     Print help
   -V, --version  Print version
-
 ```
 
 ## Installation
