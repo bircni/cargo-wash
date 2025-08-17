@@ -80,10 +80,10 @@ fn test_check_project() {
 
 #[test]
 fn test_clean_path() {
-    utility::sanitize_path_input(Some(PathBuf::from("/"))).unwrap();
-    utility::sanitize_path_input(Some(PathBuf::from("."))).unwrap();
-    utility::sanitize_path_input(Some(PathBuf::from(".."))).unwrap();
-    utility::sanitize_path_input(Some(PathBuf::from("test"))).unwrap();
+    utility::sanitize_path_input(PathBuf::from("/")).unwrap();
+    utility::sanitize_path_input(PathBuf::from(".")).unwrap();
+    utility::sanitize_path_input(PathBuf::from("..")).unwrap();
+    utility::sanitize_path_input(PathBuf::from("test")).unwrap();
 }
 
 #[test]
@@ -106,13 +106,13 @@ fn test_commands() {
     let command_stats = cli::Commands::Stats(opts);
     command_stats.run().unwrap();
     let opts2 = Options {
-        path: Some(PathBuf::from("/not_existing")),
+        path: PathBuf::from("/not_existing"),
         ..Default::default()
     };
     assert!(cli::Commands::Stats(opts2.clone()).run().is_err());
     assert!(cli::Commands::Clean(opts2).run().is_err());
     let opts3 = Options {
-        path: Some(PathBuf::from(".")),
+        path: PathBuf::from("."),
         ..Default::default()
     };
     cli::Commands::Clean(opts3).run().unwrap();
@@ -157,7 +157,7 @@ fn clean_test() {
             .output()?;
 
         let opts = Options {
-            path: Some(example_project.clone()),
+            path: example_project.clone(),
             ..Default::default()
         };
 
@@ -172,7 +172,7 @@ fn clean_test() {
 
 fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> ExecuteOptions {
     ExecuteOptions {
-        path: Some(dir),
+        path: dir,
         command: Some(cmd),
         ..Default::default()
     }
