@@ -13,7 +13,7 @@ keywords = ["cargo", "wash", "cache", "plugin", "cli"]
 [dependencies]
 anyhow = "1"
 clap = { version = "4.5", features = ["derive"] }
-comfy-table = "7.1"
+comfy-table = "7.2"
 log = "0.4"
 parking_lot = "0.12"
 rayon = "1"
@@ -23,7 +23,7 @@ update-available = "0.2"
 
 [dev-dependencies]
 insta = { version = "1.43", features = ["json"] }
-tempfile = "3.20"
+tempfile = "3.23"
 
 [[bin]]
 name = "cargo-wash"
