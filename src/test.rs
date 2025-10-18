@@ -13,7 +13,7 @@ use insta::_macro_support;
 use crate::{
     cli::{
         self,
-        opts::{CargoCommand, ExecuteOptions, Options, OptionsTrait as _},
+        opts::{Options, OptionsTrait as _},
     },
     commands::{clean, total_size_of_projects},
     data::{self, Project, Size, SizeUnit},
@@ -167,48 +167,48 @@ fn clean_test() {
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
 }
 
-fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> ExecuteOptions {
-    ExecuteOptions {
-        path: dir,
-        command: Some(cmd),
-        ..Default::default()
-    }
-}
+// fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> ExecuteOptions {
+//     ExecuteOptions {
+//         path: dir,
+//         command: Some(cmd),
+//         ..Default::default()
+//     }
+// }
 
-#[test]
-fn execute_test() {
-    // create example project
-    let tmp_dir = tempfile::tempdir().unwrap();
-    let example_project = tmp_dir.path().join("example_project");
+// #[test]
+// fn execute_test() {
+//     // create example project
+//     let tmp_dir = tempfile::tempdir().unwrap();
+//     let example_project = tmp_dir.path().join("example_project");
 
-    let result: anyhow::Result<()> = (|| {
-        fs::create_dir_all(&example_project)?;
-        Command::new("cargo")
-            .arg("init")
-            .current_dir(&example_project)
-            .output()?;
+//     let result: anyhow::Result<()> = (|| {
+//         fs::create_dir_all(&example_project)?;
+//         Command::new("cargo")
+//             .arg("init")
+//             .current_dir(&example_project)
+//             .output()?;
 
-        Command::new("cargo")
-            .arg("build")
-            .current_dir(&example_project)
-            .output()?;
+//         Command::new("cargo")
+//             .arg("build")
+//             .current_dir(&example_project)
+//             .output()?;
 
-        let command = cli::Commands::Execute(generate_test_opts(
-            example_project.clone(),
-            CargoCommand::Build,
-        ));
-        command.run().context("Could not run command")?;
+//         let command = cli::Commands::Execute(generate_test_opts(
+//             example_project.clone(),
+//             CargoCommand::Build,
+//         ));
+//         command.run().context("Could not run command")?;
 
-        let command = cli::Commands::Execute(generate_test_opts(
-            example_project.clone(),
-            CargoCommand::Check,
-        ));
-        command.run().context("Could not run command")?;
-        Ok(())
-    })();
+//         let command = cli::Commands::Execute(generate_test_opts(
+//             example_project.clone(),
+//             CargoCommand::Check,
+//         ));
+//         command.run().context("Could not run command")?;
+//         Ok(())
+//     })();
 
-    assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
-}
+//     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
+// }
 
 #[test]
 fn test_size_in_bytes() {

@@ -23,6 +23,7 @@ pub fn show(projects: &[Project]) {
     table.add_row(vec![
         "Total",
         &Size::to_size(total_size_of_projects(projects)).to_string(),
+        &format!("{} projects", projects.len()),
     ]);
     println!("{table}");
 }

@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 categories = ["development-tools::cargo-plugins"]
 keywords = ["cargo", "wash", "cache", "plugin", "cli"]
-exclude = [".github/*", ".vscode/*", "scripts/*", "tests/*"]
+exclude = [".github/*", ".vscode/*", "scripts/*", "tests/*", "typos.toml", "cliff.toml", "deny.toml"]
 
 [dependencies]
 anyhow = "1"
@@ -20,7 +20,6 @@ parking_lot = "0.12"
 rayon = "1"
 simplelog = "0.12"
 strum_macros = "0.27"
-update-available = "0.2"
 
 [dev-dependencies]
 insta = { version = "1.43", features = ["json"] }
