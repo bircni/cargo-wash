@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.7.0](https://github.com/bircni/cargo-wash/compare/1.6.1..1.7.0) - 2025-10-18
+
+### Bug Fixes
+
+- update dependencies and exclude additional directories from package - ([211d8a2](https://github.com/bircni/cargo-wash/commit/211d8a26bb983e370ec265910102e5fe78d4746c)) - Nicolas
+
+### Features
+
+- refactor CLI commands and options for improved functionality - ([9bcb3c1](https://github.com/bircni/cargo-wash/commit/9bcb3c1838165a7ea95097098ada50c3c5340f08)) - Nicolas
+
 ## [1.6.1](https://github.com/bircni/cargo-wash/compare/1.6.0..1.6.1) - 2025-08-17
 
 ### Continuous Integration
