@@ -3,7 +3,7 @@ use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 use crate::data::{Project, Size};
 
 pub mod clean;
-pub mod execute;
+pub mod executor;
 pub mod stats;
 
 pub fn total_size_of_projects(projects: &[Project]) -> u64 {

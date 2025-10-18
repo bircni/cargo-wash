@@ -1,4 +1,4 @@
-use clap::{Parser, ValueEnum};
+use clap::Parser;
 use parking_lot::RwLock;
 use rayon::iter::{ParallelBridge as _, ParallelIterator as _};
 use std::fs;
@@ -7,73 +7,21 @@ use std::sync::Arc;
 
 use crate::{data::Project, utility};
 
-/// Represents supported Cargo subcommands.
-#[derive(ValueEnum, Default, Clone)]
-pub enum CargoCommand {
-    /// Execute `cargo build`
-    Build,
-    /// Execute `cargo check`
-    Check,
-    /// Execute `cargo doc`
-    Doc,
-    /// Execute `cargo clean`
-    Clean,
-    /// Execute `cargo run`
-    Run,
-    /// Execute `cargo test`
-    Test,
-    /// Execute `cargo bench`
-    Bench,
-    /// Execute `cargo update`
-    Update,
-    /// No command, used for default or no operation
-    #[default]
-    None,
-}
-
-impl CargoCommand {
-    pub const fn to_command(&self) -> &str {
-        match self {
-            Self::Build => "build",
-            Self::Check => "check",
-            Self::Doc => "doc",
-            Self::Clean => "clean",
-            Self::Run => "run",
-            Self::Test => "test",
-            Self::Bench => "bench",
-            Self::Update => "update",
-            Self::None => "",
-        }
-    }
-}
-
-/// Represents the command line options for the `execute` command.
-#[derive(Parser, Default, Clone)]
-pub struct ExecuteOptions {
-    /// Path to the directory from which to start the search for Rust projects
-    #[arg(default_value = ".")]
-    pub path: PathBuf,
-
-    /// Exclude the provided folder from the size calculation and cleaning
-    /// You can specify multiple folders separated by commas
-    #[clap(long, short)]
-    pub exclude: Option<String>,
-
-    /// The command to execute on the Rust projects
-    #[clap(long, short)]
-    pub command: Option<CargoCommand>,
-}
-
 /// Represents general command line options.
 #[derive(Parser, Default, Clone)]
 pub struct Options {
     /// Path to the directory from which to start the search for Rust projects
-    #[arg(default_value = ".")]
+    #[clap(short, long, default_value = ".")]
     pub path: PathBuf,
 
     /// Exclude the provided folder from the size calculation and cleaning
     #[clap(long, short)]
     pub exclude: Option<String>,
+
+    /// Enable parallel processing of projects
+    /// ATTENTION: This may lead to high CPU usage!
+    #[clap(long, default_value_t = false, verbatim_doc_comment)]
+    pub parallel: bool,
 }
 
 /// A trait defining common fields shared between options structs.
@@ -83,16 +31,6 @@ pub trait CommonOptions {
 }
 
 impl CommonOptions for Options {
-    fn path(&self) -> &PathBuf {
-        &self.path
-    }
-
-    fn exclude(&self) -> Option<&String> {
-        self.exclude.as_ref()
-    }
-}
-
-impl CommonOptions for ExecuteOptions {
     fn path(&self) -> &PathBuf {
         &self.path
     }

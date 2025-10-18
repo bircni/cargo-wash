@@ -4,7 +4,6 @@ use cli::Commands;
 use log::LevelFilter;
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode};
 use std::{env, process::exit};
-use update_available::Source;
 
 mod cli;
 mod commands;
@@ -26,11 +25,6 @@ fn main() {
 
 fn real_main() -> anyhow::Result<()> {
     initialize_logger()?;
-    update_available::print_check(
-        env!("CARGO_PKG_NAME"),
-        env!("CARGO_PKG_VERSION"),
-        Source::CratesIo,
-    );
     let args = Commands::parse_from(env::args().filter(|a| a != "wash"));
     args.run()
 }
