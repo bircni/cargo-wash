@@ -47,6 +47,7 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
             .for_each(|(i, project)| {
                 execute(
                     command,
+                    &options.args,
                     project,
                     i,
                     &projects_to_execute,
@@ -62,6 +63,7 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
             .for_each(|(i, project)| {
                 execute(
                     command,
+                    &options.args,
                     project,
                     i,
                     &projects_to_execute,
@@ -104,6 +106,7 @@ fn print_execution_time(duration: std::time::Duration) {
 
 fn execute(
     command: &str,
+    args: &[String],
     project: &Project,
     i: usize,
     projects_to_execute: &[Project],
@@ -112,10 +115,15 @@ fn execute(
 ) {
     log::debug!("Running `cargo {command}` for project: {:?}", project.name);
 
-    let result = Command::new("cargo")
-        .arg(command)
-        .current_dir(&project.path)
-        .output();
+    let mut cmd = Command::new("cargo");
+    cmd.arg(command).current_dir(&project.path);
+
+    // Add additional arguments if provided
+    if !args.is_empty() {
+        cmd.args(args);
+    }
+
+    let result = cmd.output();
 
     match result {
         Ok(output) if output.status.success() => {

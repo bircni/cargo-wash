@@ -23,6 +23,10 @@ pub struct Options {
     /// ATTENTION: This may lead to high CPU usage!
     #[clap(long, default_value_t = false, verbatim_doc_comment)]
     pub parallel: bool,
+
+    /// Additional arguments to pass to the cargo command
+    #[clap(last = true)]
+    pub args: Vec<String>,
 }
 
 /// A trait defining common fields shared between options structs.
