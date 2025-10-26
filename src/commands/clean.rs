@@ -1,5 +1,6 @@
 use std::{process::Command, sync::Arc};
 
+use indicatif::{ProgressBar, ProgressStyle};
 use parking_lot::RwLock;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
@@ -19,6 +20,15 @@ pub fn run(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32
     } else {
         log::debug!("No folder excluded");
     }
+
+    // Create progress bar
+    let pb = ProgressBar::new(projects_to_clean.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_bar()),
+    );
+    pb.set_message("Cleaning projects...");
 
     projects_to_clean.par_iter().for_each(|project| {
         if cfg!(test) {
@@ -46,9 +56,15 @@ pub fn run(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32
                     log::debug!("inputs were: {projects:?}, {exclude:?}");
                 }
             }
-            Err(e) => log::error!("Failed to clean {}: {}", project.name, e),
+            Err(e) => {
+                log::error!("Failed to clean {}: {}", project.name, e);
+            }
         }
+        pb.inc(1);
     });
+
+    pb.finish_with_message("Cleaning completed");
+
     print_status(projects, &cleaned_projects.read(), exclude);
     if failed_projects.read().is_empty() {
         log::info!("All projects cleaned successfully.");
