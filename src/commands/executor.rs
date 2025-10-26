@@ -1,11 +1,13 @@
 use std::{process::Command, sync::Arc};
 
+use indicatif::{ProgressBar, ProgressStyle};
 use parking_lot::RwLock;
 use rayon::iter::{IndexedParallelIterator as _, IntoParallelRefIterator, ParallelIterator as _};
 
 use crate::{cli::opts::Options, data::Project};
 
 pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Result<()> {
+    let start_time = std::time::Instant::now();
     let processed_projects: Arc<RwLock<Vec<Project>>> = Arc::new(RwLock::new(vec![]));
     let failed_projects = Arc::new(RwLock::new(vec![]));
     // filter excluded projects
@@ -20,89 +22,59 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
         log::debug!("No folder excluded");
     }
 
-    log::info!(
-        "Starting to execute the given command (`cargo {command}`) on {} projects. ({})",
-        projects_to_execute.len(),
-        if options.parallel {
-            "Parallel mode enabled"
-        } else {
-            "Parallel mode disabled"
-        }
-    );
+    if options.parallel {
+        log::warn!(
+            "EXPERIMENTAL: Executing 'cargo {command}' on {} projects in parallel mode",
+            projects_to_execute.len()
+        );
+    }
 
     projects_to_execute.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+
+    // Create progress bar
+    let pb = ProgressBar::new(projects_to_execute.len() as u64);
+    pb.set_style(
+        ProgressStyle::default_bar()
+            .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+            .unwrap_or_else(|_| ProgressStyle::default_bar()), // .progress_chars("#>-")
+    );
+    pb.set_message(format!("Executing cargo {command}..."));
 
     if options.parallel {
         projects_to_execute
             .par_iter()
             .enumerate()
             .for_each(|(i, project)| {
-                log::debug!("Running `cargo {command}` for project: {:?}", project.name);
-
-                let result = Command::new("cargo")
-                    .arg(command)
-                    .current_dir(&project.path)
-                    .output();
-
-                match result {
-                    Ok(output) if output.status.success() => {
-                        processed_projects.write().push(project.clone());
-                        log::info!(
-                            "Successfully ran `cargo {command}` on {} ({i}/{})",
-                            project.name,
-                            projects_to_execute.len()
-                        );
-                    }
-                    Ok(output) => {
-                        failed_projects.write().push(project.clone());
-                        log::error!(
-                            "Failed to run `cargo {command}` on {} with exit code {}",
-                            project.name,
-                            output.status
-                        );
-                    }
-                    Err(e) => {
-                        failed_projects.write().push(project.clone());
-                        log::error!("Failed to execute the command on {}: {e}", project.name);
-                    }
-                }
+                execute(
+                    command,
+                    project,
+                    i,
+                    &projects_to_execute,
+                    &processed_projects,
+                    &failed_projects,
+                );
+                pb.inc(1);
             });
     } else {
         projects_to_execute
             .iter()
             .enumerate()
             .for_each(|(i, project)| {
-                log::debug!("Running `cargo {command}` for project: {:?}", project.name);
-
-                let result = Command::new("cargo")
-                    .arg(command)
-                    .current_dir(&project.path)
-                    .output();
-
-                match result {
-                    Ok(output) if output.status.success() => {
-                        processed_projects.write().push(project.clone());
-                        log::info!(
-                            "Successfully ran `cargo {command}` on {} ({i}/{})",
-                            project.name,
-                            projects_to_execute.len()
-                        );
-                    }
-                    Ok(output) => {
-                        failed_projects.write().push(project.clone());
-                        log::error!(
-                            "Failed to run `cargo {command}` on {} with exit code {}",
-                            project.name,
-                            output.status
-                        );
-                    }
-                    Err(e) => {
-                        failed_projects.write().push(project.clone());
-                        log::error!("Failed to execute the command on {}: {e}", project.name);
-                    }
-                }
+                execute(
+                    command,
+                    project,
+                    i,
+                    &projects_to_execute,
+                    &processed_projects,
+                    &failed_projects,
+                );
+                pb.inc(1);
             });
     }
+
+    pb.finish_with_message(format!("Completed cargo {command}"));
+    let duration = start_time.elapsed();
+    print_execution_time(duration);
     log::info!(
         "Executed the command on {} projects successfully, failed to execute on {} projects.",
         processed_projects.read().len(),
@@ -112,4 +84,59 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
         anyhow::bail!("Some projects ({}) failed", failed_projects.read().len())
     }
     Ok(())
+}
+
+fn print_execution_time(duration: std::time::Duration) {
+    let secs = duration.as_secs();
+    if secs >= 3600 {
+        let hours = secs / 3600;
+        let minutes = (secs % 3600) / 60;
+        let seconds = secs % 60;
+        log::info!("Total execution time: {hours}h {minutes}m {seconds}s");
+    } else if secs >= 60 {
+        let minutes = secs / 60;
+        let seconds = secs % 60;
+        log::info!("Total execution time: {minutes}m {seconds}s");
+    } else {
+        log::info!("Total execution time: {secs}s");
+    }
+}
+
+fn execute(
+    command: &str,
+    project: &Project,
+    i: usize,
+    projects_to_execute: &[Project],
+    processed_projects: &Arc<RwLock<Vec<Project>>>,
+    failed_projects: &Arc<RwLock<Vec<Project>>>,
+) {
+    log::debug!("Running `cargo {command}` for project: {:?}", project.name);
+
+    let result = Command::new("cargo")
+        .arg(command)
+        .current_dir(&project.path)
+        .output();
+
+    match result {
+        Ok(output) if output.status.success() => {
+            processed_projects.write().push(project.clone());
+            log::debug!(
+                "Successfully ran `cargo {command}` on {} ({i}/{})",
+                project.name,
+                projects_to_execute.len()
+            );
+        }
+        Ok(output) => {
+            failed_projects.write().push(project.clone());
+            log::debug!(
+                "Failed to run `cargo {command}` on {} with exit code {}",
+                project.name,
+                output.status
+            );
+        }
+        Err(e) => {
+            failed_projects.write().push(project.clone());
+            log::debug!("Failed to execute the command on {}: {e}", project.name);
+        }
+    }
 }

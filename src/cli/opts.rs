@@ -1,4 +1,5 @@
 use clap::Parser;
+use indicatif::{ProgressBar, ProgressStyle};
 use parking_lot::RwLock;
 use rayon::iter::{ParallelBridge as _, ParallelIterator as _};
 use std::fs;
@@ -62,7 +63,19 @@ where
 
             match fs::read_dir(&path) {
                 Ok(entries) => {
-                    entries.flatten().par_bridge().for_each(|entry| {
+                    let entries_vec: Vec<_> = entries.flatten().collect();
+
+                    // Create progress bar for scanning directories
+                    let pb = ProgressBar::new(entries_vec.len() as u64);
+                    pb.set_style(
+                        ProgressStyle::default_bar()
+                            .template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
+                            .unwrap_or_else(|_| ProgressStyle::default_bar())
+                            .progress_chars("#>-"),
+                    );
+                    pb.set_message("Scanning projects...");
+
+                    entries_vec.iter().par_bridge().for_each(|entry| {
                         let pathbuf = entry.path();
                         if pathbuf.is_dir() {
                             match utility::get_project(&pathbuf, self.exclude()) {
@@ -74,7 +87,10 @@ where
                                 Err(error) => log::warn!("Error checking project: {error}"),
                             }
                         }
+                        pb.inc(1);
                     });
+
+                    pb.finish_and_clear();
                 }
                 Err(error) => log::warn!("Error reading directory: {error}"),
             }

@@ -15,6 +15,7 @@ exclude = [".github/*", ".vscode/*", "scripts/*", "tests/*", "typos.toml", "clif
 anyhow = "1"
 clap = { version = "4.5", features = ["derive"] }
 comfy-table = "7.2"
+indicatif = { version = "0.18", features = ["rayon"] }
 log = "0.4"
 parking_lot = "0.12"
 rayon = "1"
