@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.8.0](https://github.com/bircni/cargo-wash/compare/1.7.0..1.8.0) - 2025-10-27
+
+### Features
+
+- use condensed layout to improve table formatting in stats display - ([e37099a](https://github.com/bircni/cargo-wash/commit/e37099a63dcdb43ea53b17882a526e178c8f5853)) - Nicolas
+- add progress indicators for improved user experience - ([ba7e2a6](https://github.com/bircni/cargo-wash/commit/ba7e2a643ebb4dd582e03a2d25eebbbe6d51809e)) - Nicolas
+- add support for additional arguments in cargo command execution - ([68b36f1](https://github.com/bircni/cargo-wash/commit/68b36f16e686117eb508f883b517b9fd0d879e92)) - Nicolas
+
 ## [1.7.0](https://github.com/bircni/cargo-wash/compare/1.6.1..1.7.0) - 2025-10-18
 
 ### Bug Fixes
