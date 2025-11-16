@@ -12,7 +12,7 @@ use insta::_macro_support;
 
 use crate::{
     cli::{
-        self,
+        self, Commands,
         opts::{Options, OptionsTrait as _},
     },
     commands::{clean, total_size_of_projects},
@@ -74,7 +74,7 @@ fn test_check_project() {
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
     assert!(res.name == "cargo-wash");
-    assert!(res.path == PathBuf::from("../cargo-wash"));
+    assert!(res.path == PathBuf::from("../cargo-wash").as_path());
 }
 
 #[test]
@@ -141,74 +141,131 @@ fn clean_test() {
     let tmp_dir = tempfile::tempdir().unwrap();
     let example_project = tmp_dir.path().join("example_project");
 
-    let result: anyhow::Result<()> = (|| {
-        fs::create_dir_all(&example_project)?;
-        Command::new("cargo")
-            .arg("init")
-            .current_dir(&example_project)
-            .output()?;
+    fs::create_dir_all(&example_project).unwrap();
+    Command::new("cargo")
+        .arg("init")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
 
-        Command::new("cargo")
-            .arg("build")
-            .current_dir(&example_project)
-            .output()?;
+    Command::new("cargo")
+        .arg("build")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
 
-        let opts = Options {
-            path: example_project.clone(),
-            ..Default::default()
-        };
+    let opts = Options {
+        path: example_project,
+        ..Default::default()
+    };
 
-        let command = cli::Commands::Clean(opts);
-        command.run().context("Could not run command")?;
-        // utils::run_clean(&projects, false, Some(&exclude))?;
-        Ok(())
-    })();
-
-    assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
+    let command = cli::Commands::Clean(opts);
+    command.run().context("Could not run command").unwrap();
+    // utils::run_clean(&projects, false, Some(&exclude))?;
 }
 
-// fn generate_test_opts(dir: PathBuf, cmd: CargoCommand) -> ExecuteOptions {
-//     ExecuteOptions {
-//         path: dir,
-//         command: Some(cmd),
-//         ..Default::default()
-//     }
-// }
+fn generate_test_opts(dir: &Path) -> Options {
+    Options {
+        path: dir.to_path_buf(),
+        ..Default::default()
+    }
+}
 
-// #[test]
-// fn execute_test() {
-//     // create example project
-//     let tmp_dir = tempfile::tempdir().unwrap();
-//     let example_project = tmp_dir.path().join("example_project");
+#[test]
+fn execute_test() {
+    // create example project
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let example_project = tmp_dir.path().join("example_project");
 
-//     let result: anyhow::Result<()> = (|| {
-//         fs::create_dir_all(&example_project)?;
-//         Command::new("cargo")
-//             .arg("init")
-//             .current_dir(&example_project)
-//             .output()?;
+    fs::create_dir_all(&example_project).unwrap();
+    Command::new("cargo")
+        .arg("init")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
 
-//         Command::new("cargo")
-//             .arg("build")
-//             .current_dir(&example_project)
-//             .output()?;
+    Command::new("cargo")
+        .arg("build")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
 
-//         let command = cli::Commands::Execute(generate_test_opts(
-//             example_project.clone(),
-//             CargoCommand::Build,
-//         ));
-//         command.run().context("Could not run command")?;
+    let clean_cmd = Commands::Clean(generate_test_opts(&example_project));
+    clean_cmd.run().unwrap();
 
-//         let command = cli::Commands::Execute(generate_test_opts(
-//             example_project.clone(),
-//             CargoCommand::Check,
-//         ));
-//         command.run().context("Could not run command")?;
-//         Ok(())
-//     })();
+    let build_cmd = Commands::Build(generate_test_opts(&example_project));
+    build_cmd.run().unwrap();
 
-//     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
-// }
+    let test_cmd = Commands::Test(generate_test_opts(&example_project));
+    test_cmd.run().unwrap();
+
+    let doc_cmd = Commands::Doc(generate_test_opts(&example_project));
+    doc_cmd.run().unwrap();
+
+    let run_cmd = Commands::Run(generate_test_opts(&example_project));
+    run_cmd.run().unwrap();
+
+    let test_cmd = Commands::Update(generate_test_opts(&example_project));
+    test_cmd.run().unwrap();
+
+    let bench_cmd = Commands::Bench(generate_test_opts(&example_project));
+    bench_cmd.run().unwrap();
+
+    let update_cmd = Commands::Update(generate_test_opts(&example_project));
+    update_cmd.run().unwrap();
+
+    let stats_cmd = Commands::Stats(generate_test_opts(&example_project));
+    stats_cmd.run().unwrap();
+}
+
+#[test]
+fn execute_test_failures() {
+    // create example project
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let example_project = tmp_dir.path().join("example_project");
+
+    fs::create_dir_all(&example_project).unwrap();
+    Command::new("cargo")
+        .arg("init")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
+
+    Command::new("cargo")
+        .arg("build")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
+
+    std::fs::remove_file(example_project.join("src").join("main.rs")).unwrap();
+
+    let clean_cmd = Commands::Clean(generate_test_opts(&example_project));
+    clean_cmd.run().unwrap();
+
+    let build_cmd = Commands::Build(generate_test_opts(&example_project));
+    build_cmd.run().unwrap_err();
+
+    let test_cmd = Commands::Test(generate_test_opts(&example_project));
+    test_cmd.run().unwrap_err();
+
+    let doc_cmd = Commands::Doc(generate_test_opts(&example_project));
+    doc_cmd.run().unwrap_err();
+
+    let run_cmd = Commands::Run(generate_test_opts(&example_project));
+    run_cmd.run().unwrap_err();
+
+    let test_cmd = Commands::Update(generate_test_opts(&example_project));
+    test_cmd.run().unwrap_err();
+
+    let bench_cmd = Commands::Bench(generate_test_opts(&example_project));
+    bench_cmd.run().unwrap_err();
+
+    let update_cmd = Commands::Update(generate_test_opts(&example_project));
+    update_cmd.run().unwrap_err();
+
+    let stats_cmd = Commands::Stats(generate_test_opts(&example_project));
+    stats_cmd.run().unwrap();
+}
 
 #[test]
 fn test_size_in_bytes() {
