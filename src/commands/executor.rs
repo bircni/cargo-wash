@@ -1,4 +1,4 @@
-use std::{process::Command, sync::Arc};
+use std::{ops::Div, process::Command, sync::Arc, thread};
 
 use indicatif::{ProgressBar, ProgressStyle};
 use parking_lot::RwLock;
@@ -41,13 +41,23 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
     pb.set_message(format!("Executing cargo {command}..."));
 
     if options.parallel {
+        let mut args = options.args.clone();
+        if command == "build" || command == "check" || command == "doc" || command == "test" {
+            let nproc = thread::available_parallelism()
+                .map(std::num::NonZero::get)
+                .unwrap_or(2)
+                .max(2) // ensure at least 2 before dividing
+                .div(3)
+                .max(2);
+            args.push(format!("-j {nproc}"));
+        }
         projects_to_execute
             .par_iter()
             .enumerate()
             .for_each(|(i, project)| {
                 execute(
                     command,
-                    &options.args,
+                    &args,
                     project,
                     i,
                     &projects_to_execute,
@@ -83,7 +93,16 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
         failed_projects.read().len()
     );
     if !failed_projects.read().is_empty() {
-        anyhow::bail!("Some projects ({}) failed", failed_projects.read().len())
+        anyhow::bail!(
+            "Some projects ({}) failed: {}",
+            failed_projects.read().len(),
+            failed_projects
+                .read()
+                .iter()
+                .map(|p| p.name.clone())
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
     Ok(())
 }
@@ -113,14 +132,22 @@ fn execute(
     processed_projects: &Arc<RwLock<Vec<Project>>>,
     failed_projects: &Arc<RwLock<Vec<Project>>>,
 ) {
-    log::debug!("Running `cargo {command}` for project: {:?}", project.name);
+    log::debug!(
+        "Running `cargo {command} {}` for project: {:?}",
+        args.join(" "),
+        project.name
+    );
 
     let mut cmd = Command::new("cargo");
     cmd.arg(command).current_dir(&project.path);
 
     // Add additional arguments if provided
     if !args.is_empty() {
-        cmd.args(args);
+        for arg in args {
+            for subarg in arg.split(' ') {
+                cmd.arg(subarg);
+            }
+        }
     }
 
     let result = cmd.output();
