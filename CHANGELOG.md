@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [1.8.1](https://github.com/bircni/cargo-wash/compare/1.8.0..1.8.1) - 2025-11-16
+
+### Features
+
+- enhance cargo command execution with dynamic parallelism and improved error reporting - ([a9584dc](https://github.com/bircni/cargo-wash/commit/a9584dc84eb152d10f7a1009ede82218af10ea7c)) - Nicolas
+- refactor test cases for CLI commands - ([2fa0fe1](https://github.com/bircni/cargo-wash/commit/2fa0fe1d62272b04d9c4f82d6e39e155df57c18e)) - Nicolas
+
 ## [1.8.0](https://github.com/bircni/cargo-wash/compare/1.7.0..1.8.0) - 2025-10-27
 
 ### Features
