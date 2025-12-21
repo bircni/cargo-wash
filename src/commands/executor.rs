@@ -107,7 +107,7 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
     Ok(())
 }
 
-fn print_execution_time(duration: std::time::Duration) {
+pub fn print_execution_time(duration: std::time::Duration) {
     let secs = duration.as_secs();
     if secs >= 3600 {
         let hours = secs / 3600;

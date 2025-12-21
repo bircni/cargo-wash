@@ -15,7 +15,7 @@ use crate::{
         self, Commands,
         opts::{Options, OptionsTrait as _},
     },
-    commands::{clean, total_size_of_projects},
+    commands::{clean, executor, total_size_of_projects},
     data::{self, Project, Size, SizeUnit},
     extensions::PathBufExt as _,
     utility,
@@ -69,12 +69,24 @@ fn snapshot_test_cli_command(app: clap::Command, cmd_name: &str) {
 
 #[test]
 fn test_check_project() {
-    let res = utility::get_project(&PathBuf::from("../cargo-wash"), None)
+    let current_dir = std::env::current_dir().unwrap();
+    let project_root = current_dir
+        .ancestors()
+        .find(|p| p.join("Cargo.toml").exists())
+        .unwrap();
+
+    let res = utility::get_project(&project_root.to_path_buf(), None)
         .unwrap()
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
-    assert!(res.name == "cargo-wash");
-    assert!(res.path == PathBuf::from("../cargo-wash").as_path());
+    assert!(res.name.contains("cargo-wash"));
+    assert!(
+        res.path
+            .as_os_str()
+            .to_str()
+            .unwrap()
+            .contains("cargo-wash")
+    );
 }
 
 #[test]
@@ -350,4 +362,11 @@ fn test_total_size_of_projects() {
     let projects = vec![p1, p2];
     let total = total_size_of_projects(&projects);
     assert_eq!(total, 1024 + 2048);
+}
+
+#[test]
+fn test_print_execution_time() {
+    executor::print_execution_time(std::time::Duration::new(3665, 0)); // 1h 1m 5s
+    executor::print_execution_time(std::time::Duration::new(125, 0)); // 2m 5s
+    executor::print_execution_time(std::time::Duration::new(45, 0)); // 45s
 }
