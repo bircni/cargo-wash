@@ -24,7 +24,7 @@ strum_macros = "0.27"
 
 [dev-dependencies]
 insta = { version = "1.45", features = ["json"] }
-tempfile = "3.23"
+tempfile = "3.24"
 
 [[bin]]
 name = "cargo-wash"
