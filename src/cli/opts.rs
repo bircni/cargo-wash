@@ -24,6 +24,10 @@ pub struct Options {
     #[clap(long, default_value_t = false, verbatim_doc_comment)]
     pub parallel: bool,
 
+    /// Directory to write per-project command logs
+    #[clap(long)]
+    pub log_dir: Option<PathBuf>,
+
     /// Additional arguments to pass to the cargo command
     #[clap(last = true)]
     pub args: Vec<String>,

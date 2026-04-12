@@ -70,7 +70,7 @@ impl Commands {
                 stats::show(&projects);
             }
             Self::Clean(opts) => {
-                clean::run(&projects, opts.exclude.as_ref())?;
+                clean::run(&projects, opts)?;
             }
             Self::Build(opts)
             | Self::Run(opts)

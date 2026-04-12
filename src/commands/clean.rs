@@ -4,15 +4,20 @@ use indicatif::{ProgressBar, ProgressStyle};
 use parking_lot::RwLock;
 use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
 
-use crate::{commands::print_status, data::Project};
+use crate::{
+    cli::opts::Options,
+    commands::{ensure_log_dir, print_status, write_project_log},
+    data::Project,
+};
 
-pub fn run(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32> {
+pub fn run(projects: &[Project], options: &Options) -> anyhow::Result<i32> {
     let cleaned_projects = Arc::new(RwLock::new(vec![]));
     let failed_projects = Arc::new(RwLock::new(vec![]));
     // filter excluded projects
     let mut projects_to_clean = projects.to_vec();
+    ensure_log_dir(options.log_dir.as_deref())?;
 
-    if let Some(excluded_projects) = exclude {
+    if let Some(excluded_projects) = options.exclude.as_ref() {
         log::debug!("Excluding folders: {excluded_projects}");
         excluded_projects
             .split(',')
@@ -39,11 +44,34 @@ pub fn run(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32
 
         let result = Command::new("cargo")
             .arg("clean")
+            .args(&options.args)
             .current_dir(&project.path)
             .output();
 
         match result {
             Ok(output) => {
+                if let Some(log_dir) = options.log_dir.as_deref() {
+                    match write_project_log(
+                        Some(log_dir),
+                        &project.name,
+                        "clean",
+                        &options.args,
+                        &output,
+                    ) {
+                        Ok(Some(file_path)) => {
+                            log::debug!(
+                                "Wrote log for {} to {}",
+                                project.name,
+                                file_path.display()
+                            );
+                        }
+                        Ok(None) => {}
+                        Err(error) => {
+                            log::warn!("Could not write log for {}: {error}", project.name);
+                        }
+                    }
+                }
+
                 if output.status.success() {
                     cleaned_projects.write().push(project.clone());
                 } else {
@@ -53,7 +81,7 @@ pub fn run(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32
                         project.name,
                         String::from_utf8_lossy(&output.stderr)
                     );
-                    log::debug!("inputs were: {projects:?}, {exclude:?}");
+                    log::debug!("inputs were: {projects:?}, {:?}", options.exclude);
                 }
             }
             Err(e) => {
@@ -65,7 +93,7 @@ pub fn run(projects: &[Project], exclude: Option<&String>) -> anyhow::Result<i32
 
     pb.finish_with_message("Cleaning completed");
 
-    print_status(projects, &cleaned_projects.read(), exclude);
+    print_status(projects, &cleaned_projects.read(), options.exclude.as_ref());
     if failed_projects.read().is_empty() {
         log::info!("All projects cleaned successfully.");
         Ok(0)
