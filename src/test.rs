@@ -138,13 +138,58 @@ fn test_run_clean_excluded() {
     };
     let projects = opts.check_args().unwrap();
     let exclude = "cargo-wash, target".to_owned();
-    let result = clean::run(&projects, Some(&exclude));
+    let result = clean::run(
+        &projects,
+        &Options {
+            exclude: Some(exclude),
+            ..Default::default()
+        },
+    );
     assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
     assert!(
         *result.as_ref().unwrap() == 0,
         "Tests failed: {}",
         result.unwrap_err()
     );
+}
+
+#[test]
+fn execute_test_with_args_and_project_logs() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let example_project = tmp_dir.path().join("example_project");
+    let target_dir_with_space = tmp_dir.path().join("target dir with space");
+    let log_dir = tmp_dir.path().join("logs");
+
+    fs::create_dir_all(&example_project).unwrap();
+    let init_output = Command::new("cargo")
+        .arg("init")
+        .arg("--bin")
+        .current_dir(&example_project)
+        .output()
+        .unwrap();
+    assert!(init_output.status.success());
+
+    let opts = Options {
+        path: example_project,
+        log_dir: Some(log_dir.clone()),
+        args: vec![
+            "--target-dir".to_owned(),
+            target_dir_with_space.to_string_lossy().to_string(),
+        ],
+        ..Default::default()
+    };
+
+    Commands::Build(opts.clone()).run().unwrap();
+    Commands::Clean(opts).run().unwrap();
+
+    let build_log = log_dir.join("example_project-build.log");
+
+    assert!(build_log.exists());
+
+    let build_log_content = fs::read_to_string(build_log).unwrap();
+    assert!(build_log_content.contains("command: cargo build"));
+    assert!(build_log_content.contains("status:"));
+    assert!(build_log_content.contains("target dir with space"));
 }
 
 #[test]
