@@ -37,7 +37,7 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
         );
     }
 
-    projects_to_execute.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    projects_to_execute.sort_by_key(|a| a.name.to_lowercase());
     ensure_log_dir(options.log_dir.as_deref())?;
 
     let pb = ProgressBar::new(projects_to_execute.len() as u64);
@@ -199,8 +199,7 @@ fn build_args(options: &Options, command: &str) -> Vec<String> {
         && !args.iter().any(|arg| arg == "-j" || arg == "--jobs")
     {
         let nproc = thread::available_parallelism()
-            .map(std::num::NonZero::get)
-            .unwrap_or(2)
+            .map_or(2, std::num::NonZero::get)
             .max(2)
             .div(3)
             .max(2);
