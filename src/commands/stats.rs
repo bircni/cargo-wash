@@ -8,9 +8,9 @@ use crate::{
 #[expect(clippy::print_stdout, reason = "No other way to show the stats")]
 pub fn show(projects: &[Project]) {
     let mut sorted_projects: Vec<Project> = projects.to_vec();
-    sorted_projects.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()));
+    sorted_projects.sort_by_key(|a| a.name.to_lowercase());
     let mut table = Table::new();
-    table.load_preset(UTF8_FULL_CONDENSED);
+    table.load_style(UTF8_FULL_CONDENSED);
     table.set_header(vec!["Project", "Size", "Path"]);
 
     for project in sorted_projects {
