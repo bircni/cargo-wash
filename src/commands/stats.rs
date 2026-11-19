@@ -5,7 +5,7 @@ use crate::{cli::Options, report, scan};
     reason = "the table is the output of the command"
 )]
 pub fn run(options: &Options) -> anyhow::Result<()> {
-    let mut projects = scan::discover(options)?;
+    let mut projects = scan::discover(&options.scan)?;
     scan::measure(&mut projects);
     println!("{}", report::table(&projects));
     Ok(())

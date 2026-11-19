@@ -1,6 +1,7 @@
 //! Everything that is shown to the user: progress, tables and summaries.
 
 use core::time::Duration;
+use std::collections::HashSet;
 
 use comfy_table::{Table, presets::UTF8_FULL_CONDENSED};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -18,8 +19,14 @@ pub fn progress_bar(len: usize, message: impl Into<String>) -> ProgressBar {
         .with_message(message.into())
 }
 
+/// Combined size of the target folders, counting a shared folder only once
 pub fn total_size<'a>(projects: impl IntoIterator<Item = &'a Project>) -> Size {
-    projects.into_iter().map(|project| project.size).sum()
+    let mut seen = HashSet::new();
+    projects
+        .into_iter()
+        .filter(|project| seen.insert(&project.target_dir))
+        .map(|project| project.size)
+        .sum()
 }
 
 /// Comma separated names of the projects
@@ -74,7 +81,7 @@ mod tests {
     fn project(name: &str, bytes: u64) -> Project {
         Project {
             size: Size(bytes),
-            ..Project::new(&Path::new("/tmp").join(name))
+            ..Project::new(&Path::new("/tmp").join(name), None)
         }
     }
 
@@ -95,5 +102,14 @@ mod tests {
         assert!(table.contains("1.00 KB"), "{table}");
         assert!(table.contains("3.00 KB"), "{table}");
         assert!(table.contains("2 projects"), "{table}");
+    }
+
+    #[test]
+    fn counts_a_shared_target_folder_once() {
+        let shared = |name: &str| Project {
+            size: Size(1024),
+            ..Project::new(&Path::new("/tmp").join(name), Some(Path::new("/shared")))
+        };
+        assert_eq!(total_size(&[shared("foo"), shared("bar")]).bytes(), 1024);
     }
 }

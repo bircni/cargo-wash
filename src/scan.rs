@@ -1,46 +1,68 @@
 //! Discovery of Rust projects and measurement of their `target` folders.
 
 use std::{
-    fs, io,
+    env, fs, io,
     path::{Path, PathBuf},
 };
 
 use anyhow::Context as _;
+use glob::Pattern;
 use indicatif::ParallelProgressIterator as _;
 use rayon::iter::{
     IntoParallelRefIterator as _, IntoParallelRefMutIterator as _, ParallelIterator as _,
 };
 
-use crate::{cli::Options, project::Project, report, size::Size};
+use crate::{cli::ScanArgs, project::Project, report, size::Size};
 
-/// Find the Rust projects in the search directory and its direct children,
-/// sorted by name.
-pub fn discover(options: &Options) -> anyhow::Result<Vec<Project>> {
-    let root = resolve_root(&options.path)?;
-    let excluded = parse_excludes(options.exclude.as_deref());
+/// Folders that never contain projects worth searching for
+const SKIPPED_DIRS: [&str; 2] = ["target", "node_modules"];
 
-    let mut candidates = child_dirs(&root);
-    candidates.push(root);
+/// Find the Rust projects below the search paths, sorted by name.
+pub fn discover(args: &ScanArgs) -> anyhow::Result<Vec<Project>> {
+    let target_dir = env::var_os("CARGO_TARGET_DIR")
+        .filter(|value| !value.is_empty())
+        .map(PathBuf::from);
+    let projects = discover_with(args, target_dir.as_deref())?;
 
-    let mut projects: Vec<Project> = candidates
-        .par_iter()
-        .filter_map(|dir| project_at(dir, &excluded))
-        .collect();
-    projects.sort_by_cached_key(|project| (project.name.to_lowercase(), project.path.clone()));
+    if let Some(target_dir) = target_dir.filter(|dir| dir.is_absolute() && projects.len() > 1) {
+        log::warn!(
+            "CARGO_TARGET_DIR is set, all projects share the target folder {}",
+            target_dir.display()
+        );
+    }
     Ok(projects)
 }
 
-/// Fill in the size of the `target` folder of every project.
+/// [`discover`] with an explicit value for `CARGO_TARGET_DIR`
+fn discover_with(args: &ScanArgs, target_dir: Option<&Path>) -> anyhow::Result<Vec<Project>> {
+    let mut projects = Vec::new();
+    for path in &args.paths {
+        let root = resolve_root(path)?;
+        let walk = Walk {
+            root: &root,
+            exclude: &args.exclude,
+            target_dir,
+        };
+        projects.extend(walk.projects_in(&root, args.depth));
+    }
+
+    projects.sort_by_cached_key(|project| (project.name.to_lowercase(), project.path.clone()));
+    // Overlapping search paths find the same project more than once.
+    projects.dedup_by(|a, b| a.path == b.path);
+    Ok(projects)
+}
+
+/// Fill in the size of the target folder of every project.
 pub fn measure(projects: &mut [Project]) {
     let progress = report::progress_bar(projects.len(), "Measuring target folders...");
     projects
         .par_iter_mut()
         .progress_with(progress.clone())
-        .for_each(|project| project.size = dir_size(&project.target_dir()));
+        .for_each(|project| project.size = dir_size(&project.target_dir));
     progress.finish_and_clear();
 }
 
-/// Resolve the directory the search starts from to an absolute path.
+/// Resolve a search path to an absolute directory.
 fn resolve_root(dir: &Path) -> anyhow::Result<PathBuf> {
     let root = dunce::canonicalize(dir)
         .with_context(|| format!("Could not resolve path: {}", dir.display()))?;
@@ -52,41 +74,77 @@ fn resolve_root(dir: &Path) -> anyhow::Result<PathBuf> {
     Ok(root)
 }
 
-/// Split the `--exclude` value into the folder names it lists.
-fn parse_excludes(exclude: Option<&str>) -> Vec<&str> {
-    exclude
-        .into_iter()
-        .flat_map(|list| list.split(','))
-        .map(str::trim)
-        .filter(|name| !name.is_empty())
-        .collect()
+/// The search below a single search path
+struct Walk<'a> {
+    root: &'a Path,
+    exclude: &'a [Pattern],
+    target_dir: Option<&'a Path>,
 }
 
+impl Walk<'_> {
+    /// Collect the projects in `dir` and up to `depth` levels below it.
+    ///
+    /// A project ends the search of its folder: nested manifests are members
+    /// of its workspace and share the target folder.
+    fn projects_in(&self, dir: &Path, depth: usize) -> Vec<Project> {
+        if self.is_excluded(dir) {
+            log::debug!("Excluding folder: {}", dir.display());
+            return vec![];
+        }
+        if dir.join("Cargo.toml").is_file() {
+            return vec![Project::new(dir, self.target_dir)];
+        }
+        if depth == 0 {
+            return vec![];
+        }
+        child_dirs(dir)
+            .par_iter()
+            .flat_map_iter(|child| self.projects_in(child, depth - 1))
+            .collect()
+    }
+
+    /// Whether the name of `dir` or its path relative to the search path
+    /// matches one of the exclude patterns
+    fn is_excluded(&self, dir: &Path) -> bool {
+        let name = dir.file_name().map(|name| name.to_string_lossy());
+        let relative = dir.strip_prefix(self.root).ok().map(|relative| {
+            relative
+                .components()
+                .map(|component| component.as_os_str().to_string_lossy())
+                .collect::<Vec<_>>()
+                .join("/")
+        });
+        self.exclude.iter().any(|pattern| {
+            [name.as_deref(), relative.as_deref()]
+                .into_iter()
+                .flatten()
+                .any(|candidate| pattern.matches(candidate))
+        })
+    }
+}
+
+/// The folders in `dir` that are searched for projects.
+///
+/// Symlinks are not followed so that the search cannot leave the search path
+/// or run into a cycle.
 fn child_dirs(dir: &Path) -> Vec<PathBuf> {
-    match fs::read_dir(dir) {
-        Ok(entries) => entries
-            .flatten()
-            .map(|entry| entry.path())
-            .filter(|path| path.is_dir())
-            .collect(),
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
         Err(error) => {
             log::warn!("Could not read {}: {error}", dir.display());
-            vec![]
+            return vec![];
         }
-    }
-}
-
-fn project_at(dir: &Path, excluded: &[&str]) -> Option<Project> {
-    let project = Project::new(dir);
-    if excluded.contains(&project.name.as_str()) {
-        log::debug!("Excluding folder: {}", project.name);
-        return None;
-    }
-    if !dir.join("Cargo.toml").is_file() {
-        log::debug!("Skipping non-Rust project: {}", project.name);
-        return None;
-    }
-    Some(project)
+    };
+    entries
+        .flatten()
+        .filter(|entry| entry.file_type().is_ok_and(|file_type| file_type.is_dir()))
+        .filter(|entry| {
+            let name = entry.file_name();
+            let name = name.to_string_lossy();
+            !name.starts_with('.') && !SKIPPED_DIRS.contains(&name.as_ref())
+        })
+        .map(|entry| entry.path())
+        .collect()
 }
 
 /// Recursively calculate the size of a folder.
@@ -123,8 +181,10 @@ mod tests {
         path::{Path, PathBuf},
     };
 
-    use super::{dir_size, discover, measure, parse_excludes, resolve_root};
-    use crate::cli::Options;
+    use glob::Pattern;
+
+    use super::{dir_size, discover_with, measure, resolve_root};
+    use crate::cli::ScanArgs;
 
     /// Create a folder with a manifest and a `target` folder of `target_bytes` bytes.
     fn create_project(parent: &Path, name: &str, target_bytes: usize) -> PathBuf {
@@ -142,20 +202,23 @@ mod tests {
         project
     }
 
-    fn names(options: &Options) -> Vec<String> {
-        discover(options)
+    fn scan(paths: &[&Path], depth: usize, exclude: &[&str]) -> ScanArgs {
+        ScanArgs {
+            paths: paths.iter().map(|path| path.to_path_buf()).collect(),
+            depth,
+            exclude: exclude
+                .iter()
+                .map(|pattern| Pattern::new(pattern).unwrap())
+                .collect(),
+        }
+    }
+
+    fn names(args: &ScanArgs) -> Vec<String> {
+        discover_with(args, None)
             .unwrap()
             .into_iter()
             .map(|project| project.name)
             .collect()
-    }
-
-    fn options(path: &Path, exclude: Option<&str>) -> Options {
-        Options {
-            path: path.to_path_buf(),
-            exclude: exclude.map(str::to_owned),
-            ..Default::default()
-        }
     }
 
     #[test]
@@ -181,34 +244,95 @@ mod tests {
     }
 
     #[test]
-    fn splits_excludes_on_commas() {
-        assert_eq!(parse_excludes(None), [""; 0]);
-        assert_eq!(parse_excludes(Some("a, b ,,c")), ["a", "b", "c"]);
-    }
-
-    #[test]
-    fn finds_the_root_and_its_children_sorted_by_name() {
+    fn finds_projects_sorted_by_name() {
         let tmp_dir = tempfile::tempdir().unwrap();
-        let root = create_project(tmp_dir.path(), "root", 0);
-        create_project(&root, "Zeta", 0);
-        create_project(&root, "alpha", 0);
-        create_project(&root.join("nested"), "too-deep", 0);
-        fs::create_dir_all(root.join("not-rust")).unwrap();
-
-        assert_eq!(names(&options(&root, None)), ["alpha", "root", "Zeta"]);
-    }
-
-    #[test]
-    fn exclude_matches_folder_names_exactly() {
-        let tmp_dir = tempfile::tempdir().unwrap();
+        create_project(tmp_dir.path(), "Zeta", 0);
         create_project(tmp_dir.path(), "alpha", 0);
-        create_project(tmp_dir.path(), "beta", 0);
-        let excluding = |exclude| names(&options(tmp_dir.path(), Some(exclude)));
+        fs::create_dir_all(tmp_dir.path().join("not-rust")).unwrap();
+
+        assert_eq!(names(&scan(&[tmp_dir.path()], 1, &[])), ["alpha", "Zeta"]);
+    }
+
+    #[test]
+    fn depth_limits_the_search() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let root = tmp_dir.path();
+        create_project(root, "one", 0);
+        create_project(&root.join("group"), "two", 0);
+        create_project(&root.join("group").join("sub"), "three", 0);
+        let with_depth = |depth| names(&scan(&[root], depth, &[]));
+
+        assert_eq!(with_depth(0), [""; 0]);
+        assert_eq!(with_depth(1), ["one"]);
+        assert_eq!(with_depth(2), ["one", "two"]);
+        assert_eq!(with_depth(3), ["one", "three", "two"]);
+        assert_eq!(with_depth(usize::MAX), ["one", "three", "two"]);
+    }
+
+    #[test]
+    fn depth_zero_checks_only_the_path_itself() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let project = create_project(tmp_dir.path(), "project", 0);
+
+        assert_eq!(names(&scan(&[&project], 0, &[])), ["project"]);
+    }
+
+    #[test]
+    fn does_not_search_inside_projects_or_skipped_folders() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let root = tmp_dir.path();
+        let workspace = create_project(root, "workspace", 0);
+        create_project(&workspace, "member", 0);
+        create_project(&root.join(".hidden"), "hidden", 0);
+        create_project(&root.join("node_modules"), "dependency", 0);
+        create_project(&root.join("target"), "artifact", 0);
+
+        assert_eq!(names(&scan(&[root], 5, &[])), ["workspace"]);
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn does_not_search_symlinked_folders() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let root = tmp_dir.path().join("root");
+        let elsewhere = create_project(tmp_dir.path(), "elsewhere", 0);
+        create_project(&root, "project", 0);
+        std::os::unix::fs::symlink(&elsewhere, root.join("link")).unwrap();
+        std::os::unix::fs::symlink(&root, root.join("cycle")).unwrap();
+
+        assert_eq!(names(&scan(&[&root], 5, &[])), ["project"]);
+    }
+
+    #[test]
+    fn searches_all_paths_without_duplicates() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let first = tmp_dir.path().join("first");
+        let second = tmp_dir.path().join("second");
+        create_project(&first, "a", 0);
+        create_project(&second, "b", 0);
+
+        let args = scan(&[&first, &second, tmp_dir.path()], 2, &[]);
+        assert_eq!(names(&args), ["a", "b"]);
+        discover_with(&scan(&[&first, Path::new("not_existing")], 1, &[]), None).unwrap_err();
+    }
+
+    #[test]
+    fn exclude_matches_names_and_relative_paths() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let root = tmp_dir.path();
+        create_project(root, "alpha", 0);
+        create_project(root, "beta", 0);
+        create_project(&root.join("vendor"), "alpha-fork", 0);
+        let excluding = |exclude: &[&str]| names(&scan(&[root], 2, exclude));
 
         // A substring of a project name (or of a parent directory) must not exclude anything.
-        assert_eq!(excluding("a"), ["alpha", "beta"]);
-        assert_eq!(excluding("alpha"), ["beta"]);
-        assert_eq!(excluding("alpha, beta"), [""; 0]);
+        assert_eq!(excluding(&["a"]), ["alpha", "alpha-fork", "beta"]);
+        assert_eq!(excluding(&["alpha"]), ["alpha-fork", "beta"]);
+        assert_eq!(excluding(&["alpha*"]), ["beta"]);
+        assert_eq!(excluding(&["alpha", "beta"]), ["alpha-fork"]);
+        assert_eq!(excluding(&["vendor"]), ["alpha", "beta"]);
+        assert_eq!(excluding(&["vendor/alpha-*"]), ["alpha", "beta"]);
+        assert_eq!(excluding(&["*"]), [""; 0]);
     }
 
     #[test]
@@ -217,11 +341,28 @@ mod tests {
         create_project(tmp_dir.path(), "built", 2048);
         create_project(tmp_dir.path(), "fresh", 0);
 
-        let mut projects = discover(&options(tmp_dir.path(), None)).unwrap();
+        let mut projects = discover_with(&scan(&[tmp_dir.path()], 1, &[]), None).unwrap();
         assert_eq!(projects.iter().map(|p| p.size.bytes()).sum::<u64>(), 0);
         measure(&mut projects);
         let sizes: Vec<u64> = projects.iter().map(|p| p.size.bytes()).collect();
         assert_eq!(sizes, [2048, 0]);
+    }
+
+    #[test]
+    fn measures_the_overridden_target_folder() {
+        let tmp_dir = tempfile::tempdir().unwrap();
+        let project = create_project(tmp_dir.path(), "project", 2048);
+        fs::create_dir_all(project.join("out")).unwrap();
+        fs::write(project.join("out").join("artifact"), vec![0; 512]).unwrap();
+
+        let args = scan(&[tmp_dir.path()], 1, &[]);
+        let mut projects = discover_with(&args, Some(Path::new("out"))).unwrap();
+        measure(&mut projects);
+        assert_eq!(
+            projects[0].target_dir,
+            project.canonicalize().unwrap().join("out")
+        );
+        assert_eq!(projects[0].size.bytes(), 512);
     }
 
     #[test]
