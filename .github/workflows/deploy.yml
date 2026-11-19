@@ -3,148 +3,138 @@ on:
   push:
     tags:
       - "*.*.*"
+permissions:
+  contents: read
 jobs:
   create-windows-binaries:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
+      - uses: actions/checkout@v7
 
-      - name: Install stable
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
 
       - name: Build cargo-wash
-        run: |
-          cargo build --release
-
-      - name: Get the version
-        shell: bash
-        id: tagName
-        run: |
-          VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
-          echo "::set-output name=tag::$VERSION"
+        run: cargo build --release --locked
 
       - name: Build package
         id: package
         shell: bash
         run: |
-          ARCHIVE_TARGET="x86_64-pc-windows-msvc"
-          ARCHIVE_NAME="cargo-wash-${{ steps.tagName.outputs.tag }}-$ARCHIVE_TARGET"
-          ARCHIVE_FILE="${ARCHIVE_NAME}.zip"
-          7z a ${ARCHIVE_FILE} ./target/release/cargo-wash.exe
-          echo "::set-output name=file::${ARCHIVE_FILE}"
-          echo "::set-output name=name::${ARCHIVE_NAME}.zip"
+          VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+          ARCHIVE_FILE="cargo-wash-${VERSION}-x86_64-pc-windows-msvc.zip"
+          7z a "$ARCHIVE_FILE" ./target/release/cargo-wash.exe
+          echo "file=$ARCHIVE_FILE" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: ${{ steps.package.outputs.name }}
+          name: ${{ steps.package.outputs.file }}
           path: ${{ steps.package.outputs.file }}
 
   create-unix-binaries:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest]
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-musl
           - os: macos-latest
             target: x86_64-apple-darwin
+          - os: macos-latest
+            target: aarch64-apple-darwin
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
+      - uses: actions/checkout@v7
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1
+      - name: Install Rust stable
+        uses: dtolnay/rust-toolchain@stable
         with:
-          profile: minimal
-          toolchain: stable
-          target: ${{ matrix.target }}
-          override: true
+          targets: ${{ matrix.target }}
 
       - name: Install musl-tools
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
           sudo apt-get install -y musl-tools
-          rustup target add x86_64-unknown-linux-musl
 
       - name: Build cargo-wash
-        run: |
-          cargo build --release --target ${{ matrix.target }}
+        run: cargo build --release --locked --target ${{ matrix.target }}
 
       - name: Strip binary
-        run: |
-          strip target/${{ matrix.target }}/release/cargo-wash
-
-      - name: Get the version
-        id: tagName
-        run: |
-          VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
-          echo "::set-output name=tag::$VERSION"
+        run: strip target/${{ matrix.target }}/release/cargo-wash
 
       - name: Build package
         id: package
         run: |
-          TAR_FILE=cargo-wash-${{ steps.tagName.outputs.tag }}-${{ matrix.target }}
-          cd target/${{ matrix.target }}/release
-          tar -czvf $GITHUB_WORKSPACE/$TAR_FILE.tar.gz cargo-wash
-          echo ::set-output "name=name::${TAR_FILE}"
-          echo ::set-output "name=file::${TAR_FILE}.tar.gz "
+          VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
+          TAR_FILE="cargo-wash-${VERSION}-${{ matrix.target }}"
+          tar -czvf "$TAR_FILE.tar.gz" -C target/${{ matrix.target }}/release cargo-wash
+          echo "name=$TAR_FILE" >> "$GITHUB_OUTPUT"
+          echo "file=$TAR_FILE.tar.gz" >> "$GITHUB_OUTPUT"
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ steps.package.outputs.name }}
           path: ${{ steps.package.outputs.file }}
 
   deploy:
     needs: [create-windows-binaries, create-unix-binaries]
+    permissions:
+      contents: write
 
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          lfs: true
-
-      - name: Install Rust stable
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: stable
-          override: true
-
-      - name: Create Cargo.lock
-        run: |
-          cargo update
-
-      - name: Get version
-        id: tagName
-        run: |
-          VERSION=$(cargo pkgid | cut -d# -f2 | cut -d: -f2)
-          echo "::set-output name=tag::$VERSION"
-
       - name: Download artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: ./binaries
+          merge-multiple: true
 
       - name: Create a release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
-          name: v${{ steps.tagName.outputs.tag }}
+          name: v${{ github.ref_name }}
           files: |
-            ./binaries/**/*.zip
-            ./binaries/**/*.tar.gz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            ./binaries/*.zip
+            ./binaries/*.tar.gz
+
+  homebrew:
+    name: Update the Homebrew formula
+    needs: deploy
+    # Prereleases never become the formula's version.
+    if: ${{ !contains(github.ref_name, '-') }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          sparse-checkout: scripts/homebrew_formula.sh
+          sparse-checkout-cone-mode: false
+
+      - name: Download the release archives
+        uses: actions/download-artifact@v8
+        with:
+          path: release
+          merge-multiple: true
+
+      - uses: actions/checkout@v7
+        with:
+          repository: bircni/homebrew-tap
+          ssh-key: ${{ secrets.HOMEBREW_TAP_DEPLOY_KEY }}
+          path: tap
+
+      - name: Commit the formula
+        run: |
+          mkdir -p tap/Formula
+          bash scripts/homebrew_formula.sh "$GITHUB_REF_NAME" release > tap/Formula/cargo-wash.rb
+          cd tap
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Formula/cargo-wash.rb
+          if ! git diff --cached --quiet; then
+            git commit -m "cargo-wash $GITHUB_REF_NAME"
+            git push
+          fi

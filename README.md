@@ -97,3 +97,9 @@ or with `cargo-binstall`:
 ```sh
 cargo binstall cargo-wash
 ```
+
+or with [Homebrew](https://brew.sh) on macOS and Linux:
+
+```sh
+brew install bircni/tap/cargo-wash
+```
