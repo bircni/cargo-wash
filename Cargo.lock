@@ -72,7 +72,7 @@ checksum = "87a0cf66fd1eb2fb7b822cb78370d82303750809bc6ba855f3f58e517d3238db"
 
 [[package]]
 name = "cargo-wash"
-version = "1.8.1"
+version = "2.0.0"
 dependencies = [
  "anyhow",
  "clap",

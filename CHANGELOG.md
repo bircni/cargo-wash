@@ -2,6 +2,44 @@
 
 All notable changes to this project will be documented in this file. See [conventional commits](https://www.conventionalcommits.org/) for commit guidelines.
 
+## [2.0.0](https://github.com/bircni/cargo-wash/compare/1.8.1..2.0.0) - 2026-11-19
+
+### Bug Fixes
+
+- correct project discovery, exclude matching and failure reporting - ([1bd56b1](https://github.com/bircni/cargo-wash/commit/1bd56b17430be77a3b30d56e9ada106870e76411)) - bircni
+
+### Continuous Integration
+
+- publish a Homebrew formula to bircni/homebrew-tap on release ([#33](https://github.com/bircni/cargo-wash/issues/33)) - ([4602ebb](https://github.com/bircni/cargo-wash/commit/4602ebb690b035bfe21c733ed562a4dfc4cdb87e)) - bircni
+
+### Documentation
+
+- describe the new commands and options in the README - ([46b6466](https://github.com/bircni/cargo-wash/commit/46b6466edacccff2727b6e8b065d02f3f419d174)) - bircni
+
+### Features
+
+- Enhance logging, and refactor command execution ([#30](https://github.com/bircni/cargo-wash/issues/30)) - ([8166523](https://github.com/bircni/cargo-wash/commit/81665232eb5bf3c124491247c7ba49b835795bb8)) - Nicolas
+-  [**breaking**]configurable search depth, multiple paths and glob excludes - ([119e902](https://github.com/bircni/cargo-wash/commit/119e9028f09dafd7a06fb41f939766c06ff61cfc)) - bircni
+-  [**breaking**]safer clean, size filters, JSON output and runtime verbosity - ([b680595](https://github.com/bircni/cargo-wash/commit/b6805958ccd8b3f67cc61bc57a69643c65460db3)) - bircni
+
+### Miscellaneous Chores
+
+- **(deps)** update dependencies to latest ([#31](https://github.com/bircni/cargo-wash/issues/31)) - ([3156f54](https://github.com/bircni/cargo-wash/commit/3156f5432a780922ff78d6359c812a080f854548)) - bircni
+
+### Refactoring
+
+- split the crate into scan, runner and report modules - ([d7d3bf3](https://github.com/bircni/cargo-wash/commit/d7d3bf3676f49b2a6762156bfd05610c6b82da51)) - bircni
+
+### Tests
+
+- Enhance test coverage with execution time checks - ([fb66295](https://github.com/bircni/cargo-wash/commit/fb66295963d97124c4fc74caaf080f2d5f03ab67)) - Nicolas
+
+### Build
+
+- **(deps)** Update dependencies for improved stability and features - ([fc65e7e](https://github.com/bircni/cargo-wash/commit/fc65e7e6e0598fac99bfa2bcf4fc3783d16b24e5)) - Nicolas
+- **(deps)** update dependencies to latest - ([49c4331](https://github.com/bircni/cargo-wash/commit/49c4331da083b97681bb5c9bfc8e19e3b2313b9e)) - bircni
+- update dependencies and remove dependabot configuration - ([a665306](https://github.com/bircni/cargo-wash/commit/a665306976e45118f4d788e7463c41a8dbb47718)) - Nicolas
+
 ## [1.8.1](https://github.com/bircni/cargo-wash/compare/1.8.0..1.8.1) - 2025-11-16
 
 ### Features
