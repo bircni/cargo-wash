@@ -1,16 +1,34 @@
+use core::num::NonZeroUsize;
 use std::path::PathBuf;
 
-use clap::{Args, Parser, Subcommand};
+use clap::{ArgAction, Args, Parser, Subcommand, ValueEnum};
 use glob::{Pattern, PatternError};
 
-/// Represents the available commands
+use crate::size::Size;
+
+/// Command line interface of `cargo-wash`
 #[derive(Parser)]
 #[command(author, version, about)]
+pub struct Cli {
+    #[command(subcommand)]
+    pub command: Command,
+
+    /// Show more output, use twice for even more
+    #[arg(short, long, action = ArgAction::Count, global = true)]
+    pub verbose: u8,
+
+    /// Only show warnings and errors
+    #[arg(short, long, global = true, conflicts_with = "verbose")]
+    pub quiet: bool,
+}
+
+/// Represents the available commands
+#[derive(Subcommand)]
 pub enum Command {
     /// Print statistics about all Rust projects in the directory
-    Stats(Options),
+    Stats(StatsArgs),
     /// Clean the `target` folders of all Rust projects in the directory
-    Clean(Options),
+    Clean(CleanArgs),
     #[command(flatten)]
     Cargo(CargoCommand),
 }
@@ -19,34 +37,79 @@ pub enum Command {
 #[derive(Subcommand)]
 pub enum CargoCommand {
     /// Execute `cargo build` on all Rust projects in the directory
-    Build(Options),
+    Build(ExecArgs),
     /// Execute `cargo check` on all Rust projects in the directory
-    Check(Options),
+    Check(ExecArgs),
     /// Execute `cargo doc` on all Rust projects in the directory
-    Doc(Options),
+    Doc(ExecArgs),
     /// Execute `cargo run` on all Rust projects in the directory
-    Run(Options),
+    Run(ExecArgs),
     /// Execute `cargo test` on all Rust projects in the directory
-    Test(Options),
+    Test(ExecArgs),
     /// Execute `cargo bench` on all Rust projects in the directory
-    Bench(Options),
+    Bench(ExecArgs),
     /// Execute `cargo update` on all Rust projects in the directory
-    Update(Options),
+    Update(ExecArgs),
 }
 
 impl CargoCommand {
     /// The cargo subcommand to run together with its options
-    pub const fn parts(&self) -> (&'static str, &Options) {
+    pub const fn parts(&self) -> (&'static str, &ExecArgs) {
         match self {
-            Self::Build(options) => ("build", options),
-            Self::Check(options) => ("check", options),
-            Self::Doc(options) => ("doc", options),
-            Self::Run(options) => ("run", options),
-            Self::Test(options) => ("test", options),
-            Self::Bench(options) => ("bench", options),
-            Self::Update(options) => ("update", options),
+            Self::Build(args) => ("build", args),
+            Self::Check(args) => ("check", args),
+            Self::Doc(args) => ("doc", args),
+            Self::Run(args) => ("run", args),
+            Self::Test(args) => ("test", args),
+            Self::Bench(args) => ("bench", args),
+            Self::Update(args) => ("update", args),
         }
     }
+}
+
+/// Options of the `stats` command
+#[derive(Args)]
+pub struct StatsArgs {
+    #[command(flatten)]
+    pub scan: ScanArgs,
+
+    #[command(flatten)]
+    pub filter: FilterArgs,
+
+    /// Print the projects as JSON with sizes in bytes
+    #[arg(long)]
+    pub json: bool,
+}
+
+/// Options of the `clean` command
+#[derive(Args)]
+pub struct CleanArgs {
+    #[command(flatten)]
+    pub scan: ScanArgs,
+
+    #[command(flatten)]
+    pub filter: FilterArgs,
+
+    /// Show what would be cleaned without removing anything
+    #[arg(short = 'n', long)]
+    pub dry_run: bool,
+
+    /// Clean without asking for confirmation
+    #[arg(short, long)]
+    pub yes: bool,
+
+    #[command(flatten)]
+    pub run: RunArgs,
+}
+
+/// Options of the commands forwarded to cargo
+#[derive(Args)]
+pub struct ExecArgs {
+    #[command(flatten)]
+    pub scan: ScanArgs,
+
+    #[command(flatten)]
+    pub run: RunArgs,
 }
 
 /// Options selecting the projects a command applies to
@@ -73,16 +136,35 @@ fn parse_pattern(pattern: &str) -> Result<Pattern, PatternError> {
     Pattern::new(pattern.trim())
 }
 
-/// Represents general command line options.
-#[derive(Args, Clone)]
-pub struct Options {
-    #[command(flatten)]
-    pub scan: ScanArgs,
+/// Options selecting and ordering projects by the size of their target folder
+#[derive(Args)]
+pub struct FilterArgs {
+    /// Order of the projects
+    #[arg(long, value_enum, default_value_t = SortBy::Name)]
+    pub sort: SortBy,
 
-    /// Enable parallel processing of projects
-    /// ATTENTION: This may lead to high CPU usage!
-    #[arg(long, default_value_t = false, verbatim_doc_comment)]
-    pub parallel: bool,
+    /// Only include projects whose target folder is at least this big, e.g. `500MB` or `1.5GB`
+    #[arg(long, value_name = "SIZE")]
+    pub min_size: Option<Size>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, ValueEnum)]
+pub enum SortBy {
+    /// Alphabetically by name
+    Name,
+    /// Largest target folder first
+    Size,
+}
+
+/// Options controlling how cargo is run in the projects
+#[derive(Args)]
+pub struct RunArgs {
+    /// Number of projects to process at the same time
+    ///
+    /// Defaults to 1 for cargo commands, which use all cores on their own,
+    /// and to the number of cores for `clean`.
+    #[arg(short, long)]
+    pub jobs: Option<NonZeroUsize>,
 
     /// Directory to write per-project command logs
     #[arg(long)]
@@ -99,7 +181,8 @@ mod tests {
 
     use clap::{CommandFactory as _, Parser as _};
 
-    use super::{CargoCommand, Command};
+    use super::{Cli, Command, ScanArgs, SortBy};
+    use crate::size::Size;
 
     fn long_help(mut command: clap::Command) -> String {
         command.render_long_help().to_string()
@@ -107,7 +190,7 @@ mod tests {
 
     #[test]
     fn help_snapshots() {
-        let app = Command::command().name("cargo-wash").version("0.0.0");
+        let app = Cli::command().name("cargo-wash").version("0.0.0");
         insta::with_settings!({ snapshot_path => "../tests/snapshots" }, {
             insta::assert_snapshot!("help", long_help(app.clone()));
             for subcommand in app.get_subcommands().filter(|cmd| cmd.get_name() != "help") {
@@ -119,26 +202,31 @@ mod tests {
         });
     }
 
+    fn parse(args: &[&str]) -> Result<Cli, clap::Error> {
+        Cli::try_parse_from([&["cargo-wash"], args].concat())
+    }
+
+    fn scan_args(args: &[&str]) -> Result<ScanArgs, clap::Error> {
+        parse(&[&["stats"], args].concat()).map(|cli| match cli.command {
+            Command::Stats(stats) => stats.scan,
+            Command::Clean(_) | Command::Cargo(_) => unreachable!("parsed `stats`"),
+        })
+    }
+
     #[test]
     fn cargo_commands_map_to_their_subcommand() {
         for name in ["build", "check", "doc", "run", "test", "bench", "update"] {
-            let Command::Cargo(command) =
-                Command::parse_from(["cargo-wash", name, "--", "--release"])
+            let Command::Cargo(command) = parse(&[name, "-j", "2", "--", "--release"])
+                .unwrap()
+                .command
             else {
                 panic!("`{name}` was not parsed as a cargo command");
             };
-            let (subcommand, options) = CargoCommand::parts(&command);
+            let (subcommand, args) = command.parts();
             assert_eq!(subcommand, name);
-            assert_eq!(options.args, ["--release"]);
+            assert_eq!(args.run.args, ["--release"]);
+            assert_eq!(args.run.jobs.map(usize::from), Some(2));
         }
-    }
-
-    fn scan_args(args: &[&str]) -> Result<super::ScanArgs, clap::Error> {
-        let args = ["cargo-wash", "stats"].iter().chain(args);
-        Command::try_parse_from(args).map(|command| match command {
-            Command::Stats(options) | Command::Clean(options) => options.scan,
-            Command::Cargo(cargo) => cargo.parts().1.scan.clone(),
-        })
     }
 
     #[test]
@@ -163,6 +251,49 @@ mod tests {
         assert!(
             scan_args(&["--exclude", "[a"]).is_err(),
             "unclosed character class"
+        );
+    }
+
+    #[test]
+    fn clean_parses_safety_and_filter_flags() {
+        let Command::Clean(clean) = parse(&["clean", "-n", "--min-size", "1GB", "--sort", "size"])
+            .unwrap()
+            .command
+        else {
+            panic!("`clean` was not parsed");
+        };
+        assert!(clean.dry_run && !clean.yes, "only --dry-run was passed");
+        assert_eq!(clean.filter.min_size, Some(Size(1024 * 1024 * 1024)));
+        assert_eq!(clean.filter.sort, SortBy::Size);
+        assert!(
+            parse(&["clean", "--min-size", "big"]).is_err(),
+            "not a size"
+        );
+        assert!(
+            parse(&["clean", "--jobs", "0"]).is_err(),
+            "at least one job"
+        );
+    }
+
+    #[test]
+    fn verbosity_flags_are_global_and_exclusive() {
+        assert_eq!(parse(&["stats", "-vv"]).unwrap().verbose, 2);
+        assert!(
+            parse(&["-q", "stats"]).unwrap().quiet,
+            "-q before the command"
+        );
+        assert!(
+            parse(&["stats", "-q", "-v"]).is_err(),
+            "-q conflicts with -v"
+        );
+    }
+
+    #[test]
+    fn stats_does_not_accept_cargo_options() {
+        assert!(parse(&["stats", "--log-dir", "logs"]).is_err(), "--log-dir");
+        assert!(
+            parse(&["stats", "--", "--release"]).is_err(),
+            "cargo arguments"
         );
     }
 }

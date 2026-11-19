@@ -47,19 +47,14 @@ fn stderr(output: &Output) -> String {
     String::from_utf8_lossy(&output.stderr).into_owned()
 }
 
-/// Everything the command printed, log messages are split between both streams
-fn printed(output: &Output) -> String {
-    stdout(output) + &stderr(output)
-}
-
 #[track_caller]
 fn assert_success(output: &Output) {
-    assert!(output.status.success(), "{}", printed(output));
+    assert!(output.status.success(), "{}", stderr(output));
 }
 
 #[track_caller]
 fn assert_failure(output: &Output) {
-    assert_eq!(output.status.code(), Some(1), "{}", printed(output));
+    assert_eq!(output.status.code(), Some(1), "{}", stderr(output));
 }
 
 fn path_arg(path: &Path) -> &str {
@@ -121,6 +116,7 @@ fn clean_removes_target_and_respects_exclude() {
 
     let output = wash([
         "clean",
+        "--yes",
         "--path",
         path_arg(tmp_dir.path()),
         "--exclude",
@@ -130,9 +126,9 @@ fn clean_removes_target_and_respects_exclude() {
     assert!(!cleaned.join("target").exists());
     assert!(kept.join("target").exists());
     assert!(
-        printed(&output).contains("Cleaned 2.00 KB (1 projects)"),
+        stderr(&output).contains("Cleaned 2.00 KB (1 projects)"),
         "{}",
-        printed(&output)
+        stderr(&output)
     );
 }
 
@@ -143,7 +139,7 @@ fn clean_fails_when_a_project_cannot_be_cleaned() {
     fs::write(broken.join("Cargo.toml"), "not a manifest").unwrap();
     let fine = create_project(tmp_dir.path(), "fine", 1024);
 
-    let output = wash(["clean", "--path", path_arg(tmp_dir.path())]);
+    let output = wash(["clean", "--yes", "--path", path_arg(tmp_dir.path())]);
     assert_failure(&output);
     assert!(
         !fine.join("target").exists(),
@@ -176,9 +172,8 @@ fn forwards_arguments_and_writes_project_logs() {
     let target_dir = tmp_dir.path().join("target dir with space");
     let log_dir = tmp_dir.path().join("logs");
 
-    for command in ["build", "clean"] {
-        let output = wash([
-            command,
+    for command in [&["build"][..], &["clean", "--yes"]] {
+        let output = wash(command.iter().copied().chain([
             "--path",
             path_arg(&project),
             "--log-dir",
@@ -186,7 +181,7 @@ fn forwards_arguments_and_writes_project_logs() {
             "--",
             "--target-dir",
             path_arg(&target_dir),
-        ]);
+        ]));
         assert_success(&output);
     }
 
@@ -226,15 +221,142 @@ fn reports_failing_projects_with_their_output() {
 }
 
 #[test]
-fn parallel_mode_runs_all_projects() {
+fn jobs_run_all_projects_concurrently() {
     let tmp_dir = tempfile::tempdir().unwrap();
     let first = create_project(tmp_dir.path(), "first", 0);
     let second = create_project(tmp_dir.path(), "second", 0);
 
-    let output = wash(["check", "--parallel", "--path", path_arg(tmp_dir.path())]);
+    let output = wash(["check", "--jobs", "2", "--path", path_arg(tmp_dir.path())]);
     assert_success(&output);
     assert!(first.join("target").exists());
     assert!(second.join("target").exists());
+    assert!(
+        stderr(&output).contains("2 projects succeeded, 0 failed"),
+        "{}",
+        stderr(&output)
+    );
+}
+
+#[test]
+fn clean_dry_run_removes_nothing() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let project = create_project(tmp_dir.path(), "project", 2048);
+
+    let output = wash(["clean", "--dry-run", "--path", path_arg(tmp_dir.path())]);
+    assert_success(&output);
+    assert!(project.join("target").exists());
+    assert!(stdout(&output).contains("project"), "{}", stdout(&output));
+    assert!(
+        stderr(&output).contains("Would clean 2.00 KB (1 projects)"),
+        "{}",
+        stderr(&output)
+    );
+}
+
+#[test]
+fn clean_requires_confirmation_when_not_interactive() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let project = create_project(tmp_dir.path(), "project", 2048);
+
+    let output = wash(["clean", "--path", path_arg(tmp_dir.path())]);
+    assert_failure(&output);
+    assert!(
+        project.join("target").exists(),
+        "nothing may be removed without consent"
+    );
+    assert!(stderr(&output).contains("--yes"), "{}", stderr(&output));
+}
+
+#[test]
+fn clean_only_touches_projects_above_the_minimum_size() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let big = create_project(tmp_dir.path(), "big", 4096);
+    let small = create_project(tmp_dir.path(), "small", 16);
+
+    let output = wash([
+        "clean",
+        "-y",
+        "--min-size",
+        "1KB",
+        "--path",
+        path_arg(tmp_dir.path()),
+    ]);
+    assert_success(&output);
+    assert!(!big.join("target").exists());
+    assert!(small.join("target").exists());
+}
+
+#[test]
+fn clean_without_projects_succeeds() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let output = wash(["clean", "--path", path_arg(tmp_dir.path())]);
+    assert_success(&output);
+    assert!(
+        stderr(&output).contains("No projects to clean"),
+        "{}",
+        stderr(&output)
+    );
+}
+
+#[test]
+fn stats_prints_json_on_a_clean_stdout() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let small = create_project(tmp_dir.path(), "a-small", 100);
+    create_project(tmp_dir.path(), "b-big", 3000);
+    create_project(tmp_dir.path(), "c-medium", 2000);
+
+    let output = wash(
+        [
+            "stats",
+            "--json",
+            "--sort",
+            "size",
+            "--min-size",
+            "1000",
+            "-vv",
+        ]
+        .into_iter()
+        .chain(["--path", path_arg(tmp_dir.path())]),
+    );
+    assert_success(&output);
+    let stats: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    let projects = stats["projects"].as_array().unwrap();
+    let names: Vec<&str> = projects
+        .iter()
+        .map(|p| p["name"].as_str().unwrap())
+        .collect();
+    assert_eq!(names, ["b-big", "c-medium"]);
+    assert_eq!(projects[0]["size"], 3000);
+    assert_eq!(stats["total_size"], 5000);
+    assert!(
+        projects[0]["path"].as_str().unwrap().ends_with("b-big"),
+        "{stats}"
+    );
+    assert!(
+        projects[0]["target_dir"]
+            .as_str()
+            .unwrap()
+            .ends_with("target"),
+        "{stats}"
+    );
+    assert!(small.exists());
+}
+
+#[test]
+fn verbosity_flags_control_the_log_output() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    create_project(tmp_dir.path(), "project", 0);
+    let check = |flag: &str| {
+        let output = wash(["check", flag, "--path", path_arg(tmp_dir.path())]);
+        assert_success(&output);
+        assert_eq!(stdout(&output), "", "log messages belong on stderr");
+        stderr(&output)
+    };
+
+    assert_eq!(check("--quiet"), "");
+    let verbose = check("--verbose");
+    assert!(verbose.contains("Running `cargo check"), "{verbose}");
+    assert!(verbose.contains("1 projects succeeded"), "{verbose}");
 }
 
 #[test]
@@ -280,8 +402,8 @@ fn respects_a_shared_cargo_target_dir() {
         "the shared folder must be counted once: {table}"
     );
     assert!(
-        printed(&output).contains("share the target folder"),
+        stderr(&output).contains("share the target folder"),
         "{}",
-        printed(&output)
+        stderr(&output)
     );
 }

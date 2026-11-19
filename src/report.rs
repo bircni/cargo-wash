@@ -1,12 +1,36 @@
 //! Everything that is shown to the user: progress, tables and summaries.
 
 use core::time::Duration;
-use std::collections::HashSet;
+use std::{collections::HashSet, sync::LazyLock};
 
 use comfy_table::{Table, presets::UTF8_FULL_CONDENSED};
-use indicatif::{ProgressBar, ProgressStyle};
+use indicatif::{MultiProgress, ProgressBar, ProgressStyle};
+use log::{Log, Metadata, Record};
 
 use crate::{project::Project, size::Size};
+
+/// Owner of all progress bars, so that log messages can be printed above them
+static PROGRESS: LazyLock<MultiProgress> = LazyLock::new(MultiProgress::new);
+
+/// A logger that hides the progress bars while a message is written, which
+/// keeps log lines from being mixed into a bar.
+pub struct ProgressLogger<L>(pub L);
+
+impl<L: Log> Log for ProgressLogger<L> {
+    fn enabled(&self, metadata: &Metadata<'_>) -> bool {
+        self.0.enabled(metadata)
+    }
+
+    fn log(&self, record: &Record<'_>) {
+        if self.enabled(record.metadata()) {
+            PROGRESS.suspend(|| self.0.log(record));
+        }
+    }
+
+    fn flush(&self) {
+        self.0.flush();
+    }
+}
 
 /// Create the progress bar used by all long running steps.
 pub fn progress_bar(len: usize, message: impl Into<String>) -> ProgressBar {
@@ -14,9 +38,11 @@ pub fn progress_bar(len: usize, message: impl Into<String>) -> ProgressBar {
         ProgressStyle::with_template("{spinner:.green} [{bar:40.cyan/blue}] {pos}/{len} {msg}")
             .unwrap_or_else(|_| ProgressStyle::default_bar())
             .progress_chars("#>-");
-    ProgressBar::new(len as u64)
-        .with_style(style)
-        .with_message(message.into())
+    PROGRESS.add(
+        ProgressBar::new(len as u64)
+            .with_style(style)
+            .with_message(message.into()),
+    )
 }
 
 /// Combined size of the target folders, counting a shared folder only once
