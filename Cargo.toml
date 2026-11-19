@@ -25,7 +25,7 @@ serde_json = "1"
 simplelog = "0.12"
 
 [dev-dependencies]
-insta = { version = "1.48", features = ["json"] }
+insta = "1.49"
 tempfile = "3.27"
 
 [lints.rust]
