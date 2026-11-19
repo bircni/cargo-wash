@@ -6,7 +6,7 @@ use std::{
     str,
 };
 
-use anyhow::Context;
+use anyhow::Context as _;
 use clap::{ColorChoice, CommandFactory as _};
 use insta::_macro_support;
 
@@ -15,7 +15,7 @@ use crate::{
         self, Commands,
         opts::{Options, OptionsTrait as _},
     },
-    commands::{clean, executor, total_size_of_projects},
+    commands::{executor, total_size_of_projects},
     data::{self, Project, Size, SizeUnit},
     extensions::PathBufExt as _,
     utility,
@@ -75,7 +75,7 @@ fn test_check_project() {
         .find(|p| p.join("Cargo.toml").exists())
         .unwrap();
 
-    let res = utility::get_project(&project_root.to_path_buf(), None)
+    let res = utility::get_project(&project_root.to_path_buf(), &[])
         .unwrap()
         .unwrap();
     assert!(res.size > data::Size::to_size(0));
@@ -89,12 +89,146 @@ fn test_check_project() {
     );
 }
 
+/// Create a minimal cargo project with a fake `target` folder of `target_bytes` bytes.
+fn create_project(parent: &Path, name: &str, target_bytes: usize) -> PathBuf {
+    let project = parent.join(name);
+    fs::create_dir_all(project.join("src")).unwrap();
+    fs::write(
+        project.join("Cargo.toml"),
+        format!("[package]\nname = \"{name}\"\nversion = \"0.1.0\"\nedition = \"2021\"\n"),
+    )
+    .unwrap();
+    fs::write(project.join("src").join("main.rs"), "fn main() {}\n").unwrap();
+    if target_bytes > 0 {
+        fs::create_dir_all(project.join("target")).unwrap();
+        fs::write(
+            project.join("target").join("artifact"),
+            vec![0; target_bytes],
+        )
+        .unwrap();
+    }
+    project
+}
+
+fn project_names(opts: &Options) -> Vec<String> {
+    let mut names: Vec<String> = opts
+        .check_args()
+        .unwrap()
+        .into_iter()
+        .map(|project| project.name)
+        .collect();
+    names.sort();
+    names
+}
+
 #[test]
-fn test_clean_path() {
-    utility::sanitize_path_input(&PathBuf::from("/")).unwrap();
-    utility::sanitize_path_input(&PathBuf::from(".")).unwrap();
-    utility::sanitize_path_input(&PathBuf::from("..")).unwrap();
-    utility::sanitize_path_input(&PathBuf::from("test")).unwrap();
+fn test_resolve_root() {
+    let cwd = std::env::current_dir().unwrap();
+    assert_eq!(utility::resolve_root(Path::new(".")).unwrap(), cwd);
+    assert_eq!(
+        utility::resolve_root(Path::new("..")).unwrap(),
+        cwd.parent().unwrap()
+    );
+    utility::resolve_root(Path::new("not_existing")).unwrap_err();
+    utility::resolve_root(Path::new("Cargo.toml")).unwrap_err();
+}
+
+#[cfg(unix)]
+#[test]
+fn test_resolve_root_keeps_filesystem_root() {
+    assert_eq!(
+        utility::resolve_root(Path::new("/")).unwrap(),
+        PathBuf::from("/"),
+        "the filesystem root must not be replaced by the current directory"
+    );
+}
+
+#[test]
+fn test_strip_cargo_subcommand() {
+    let strip = |args: &[&str]| -> Vec<String> {
+        super::strip_cargo_subcommand(args.iter().map(Into::into))
+            .into_iter()
+            .map(|arg| arg.to_string_lossy().into_owned())
+            .collect()
+    };
+    assert_eq!(
+        strip(&["cargo-wash", "wash", "stats"]),
+        ["cargo-wash", "stats"]
+    );
+    assert_eq!(strip(&["cargo-wash", "stats"]), ["cargo-wash", "stats"]);
+    assert_eq!(
+        strip(&["cargo-wash", "stats", "--path", "wash"]),
+        ["cargo-wash", "stats", "--path", "wash"],
+        "only the subcommand inserted by cargo may be removed"
+    );
+    assert_eq!(
+        strip(&["cargo-wash", "wash", "run", "--", "wash"]),
+        ["cargo-wash", "run", "--", "wash"]
+    );
+}
+
+#[test]
+fn test_exclude_matches_folder_names_exactly() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    create_project(tmp_dir.path(), "alpha", 0);
+    create_project(tmp_dir.path(), "beta", 0);
+    let with_exclude = |exclude: &str| Options {
+        path: tmp_dir.path().to_path_buf(),
+        exclude: Some(exclude.to_owned()),
+        ..Default::default()
+    };
+
+    // A substring of a project name (or of a parent directory) must not exclude anything.
+    assert_eq!(project_names(&with_exclude("a")), ["alpha", "beta"]);
+    assert_eq!(project_names(&with_exclude("alpha")), ["beta"]);
+    assert_eq!(project_names(&with_exclude("alpha, beta")), [""; 0]);
+}
+
+#[test]
+fn test_clean_removes_target_and_respects_exclude() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let cleaned = create_project(tmp_dir.path(), "cleaned", 2048);
+    let kept = create_project(tmp_dir.path(), "kept", 2048);
+
+    Commands::Clean(Options {
+        path: tmp_dir.path().to_path_buf(),
+        exclude: Some("kept".to_owned()),
+        ..Default::default()
+    })
+    .run()
+    .unwrap();
+
+    assert!(!cleaned.join("target").exists());
+    assert!(kept.join("target").exists());
+}
+
+#[test]
+fn test_clean_fails_when_a_project_cannot_be_cleaned() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let broken = create_project(tmp_dir.path(), "broken", 0);
+    fs::write(broken.join("Cargo.toml"), "not a manifest").unwrap();
+
+    Commands::Clean(generate_test_opts(tmp_dir.path()))
+        .run()
+        .unwrap_err();
+}
+
+#[cfg(unix)]
+#[test]
+fn test_get_folder_size_does_not_follow_symlinks() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let outside = tmp_dir.path().join("outside");
+    let inside = tmp_dir.path().join("inside");
+    fs::create_dir_all(&outside).unwrap();
+    fs::create_dir_all(&inside).unwrap();
+    fs::write(outside.join("big"), vec![0; 4096]).unwrap();
+    fs::write(inside.join("small"), vec![0; 10]).unwrap();
+    std::os::unix::fs::symlink(&outside, inside.join("dir_link")).unwrap();
+    std::os::unix::fs::symlink(&inside, inside.join("loop")).unwrap();
+
+    let size = utility::get_folder_size(&inside);
+    assert!(size < 4096, "symlinked content was counted: {size}");
+    assert!(size >= 10, "regular files must be counted: {size}");
 }
 
 #[test]
@@ -117,40 +251,12 @@ fn test_commands() {
     };
     assert!(cli::Commands::Stats(opts2.clone()).run().is_err());
     assert!(cli::Commands::Clean(opts2).run().is_err());
-    let opts3 = Options {
-        path: PathBuf::from("."),
-        ..Default::default()
-    };
-    cli::Commands::Clean(opts3).run().unwrap();
 }
 
 #[test]
 fn test_get_folder_size() {
-    let size = utility::get_folder_size("src").unwrap();
-    assert!(size > 0);
-}
-
-#[test]
-fn test_run_clean_excluded() {
-    let opts = Options {
-        path: ".".into(),
-        ..Default::default()
-    };
-    let projects = opts.check_args().unwrap();
-    let exclude = "cargo-wash, target".to_owned();
-    let result = clean::run(
-        &projects,
-        &Options {
-            exclude: Some(exclude),
-            ..Default::default()
-        },
-    );
-    assert!(result.is_ok(), "Test failed: {}", result.unwrap_err());
-    assert!(
-        *result.as_ref().unwrap() == 0,
-        "Tests failed: {}",
-        result.unwrap_err()
-    );
+    assert!(utility::get_folder_size("src") > 0);
+    assert_eq!(utility::get_folder_size("not_existing"), 0);
 }
 
 #[test]
@@ -296,8 +402,9 @@ fn execute_test_failures() {
 
     std::fs::remove_file(example_project.join("src").join("main.rs")).unwrap();
 
+    // Without a build target cargo cannot parse the manifest, so cleaning fails as well.
     let clean_cmd = Commands::Clean(generate_test_opts(&example_project));
-    clean_cmd.run().unwrap();
+    clean_cmd.run().unwrap_err();
 
     let build_cmd = Commands::Build(generate_test_opts(&example_project));
     build_cmd.run().unwrap_err();

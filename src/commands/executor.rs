@@ -21,15 +21,6 @@ pub fn run(projects: &[Project], options: &Options, command: &str) -> anyhow::Re
     let execution_results: Arc<RwLock<Vec<ExecutionResult>>> = Arc::new(RwLock::new(vec![]));
     let mut projects_to_execute = projects.to_vec();
 
-    if let Some(excluded_projects) = options.exclude.as_ref() {
-        log::debug!("Excluding folders: {excluded_projects}");
-        excluded_projects
-            .split(',')
-            .for_each(|ex| projects_to_execute.retain(|project| project.name != ex.trim()));
-    } else {
-        log::debug!("No folder excluded");
-    }
-
     if options.parallel {
         log::warn!(
             "EXPERIMENTAL: Executing 'cargo {command}' on {} projects in parallel mode",
@@ -160,10 +151,11 @@ fn execute(
                     total
                 );
             } else {
-                log::debug!(
-                    "Failed to run `cargo {command}` on {} with exit code {}",
+                log::error!(
+                    "`cargo {command}` failed on {} ({}):\n{}",
                     project.name,
-                    output.status
+                    output.status,
+                    String::from_utf8_lossy(&output.stderr).trim_end()
                 );
             }
 
@@ -183,7 +175,10 @@ fn execute(
             });
         }
         Err(error) => {
-            log::debug!("Failed to execute the command on {}: {error}", project.name);
+            log::error!(
+                "Could not run `cargo {command}` on {}: {error}",
+                project.name
+            );
             execution_results.write().push(ExecutionResult {
                 project: project.clone(),
                 success: false,

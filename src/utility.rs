@@ -1,5 +1,5 @@
 use std::{
-    env, fs,
+    fs, io,
     path::{Path, PathBuf},
 };
 
@@ -7,57 +7,60 @@ use anyhow::Context as _;
 
 use crate::{data::Project, extensions::PathBufExt as _};
 
-pub fn sanitize_path_input(dir: &PathBuf) -> anyhow::Result<PathBuf> {
-    if dir == Path::new("/") || dir == Path::new(".") {
-        env::current_dir().context("Failed to get current directory")
-    } else if dir == Path::new("..") {
-        env::current_dir()
-            .context("Failed to get current directory")?
-            .parent()
-            .context("Failed to get parent directory")
-            .map(Path::to_path_buf)
-            .context("Failed to convert parent directory to path")
-    } else {
-        Ok(dir.clone())
-    }
+/// Resolve the directory the search starts from to an absolute path.
+pub fn resolve_root(dir: &Path) -> anyhow::Result<PathBuf> {
+    let root = dunce::canonicalize(dir)
+        .with_context(|| format!("Could not resolve path: {}", dir.display()))?;
+    anyhow::ensure!(root.is_dir(), "The provided path is not a directory.");
+    Ok(root)
 }
 
-/// Recursively calculate the size of a folder
-pub fn get_folder_size<P: AsRef<Path>>(dir: P) -> anyhow::Result<u64> {
-    if !dir.as_ref().exists() {
-        return Ok(0);
-    }
-    let mut total_size = 0;
-
-    for entry_res in fs::read_dir(dir)? {
-        let entry = entry_res?;
-        let path = entry.path();
-        let metadata = fs::metadata(&path)?;
-
-        if metadata.is_dir() {
-            total_size += get_folder_size(&path)?;
-        } else {
-            total_size += metadata.len();
-        }
-    }
-
-    Ok(total_size)
+/// Split the `--exclude` value into the folder names it lists.
+pub fn parse_excludes(exclude: Option<&String>) -> Vec<String> {
+    exclude
+        .into_iter()
+        .flat_map(|list| list.split(','))
+        .map(str::trim)
+        .filter(|name| !name.is_empty())
+        .map(str::to_owned)
+        .collect()
 }
 
-pub fn get_project(
-    path: &PathBuf,
-    exclude_folder: Option<&String>,
-) -> anyhow::Result<Option<Project>> {
-    if let Some(exclude) = exclude_folder {
-        if path.to_string_lossy().contains(exclude) {
-            log::debug!("Excluding folder: {exclude}");
-            return Ok(None);
+/// Recursively calculate the size of a folder.
+///
+/// Symlinks are not followed, and entries that cannot be read are skipped.
+pub fn get_folder_size<P: AsRef<Path>>(dir: P) -> u64 {
+    let dir = dir.as_ref();
+    let entries = match fs::read_dir(dir) {
+        Ok(entries) => entries,
+        Err(error) => {
+            if error.kind() != io::ErrorKind::NotFound {
+                log::warn!("Could not read {}: {error}", dir.display());
+            }
+            return 0;
         }
-        log::debug!("Checking folder: {}", path.to_string_lossy());
-    }
+    };
 
+    entries
+        .filter_map(|entry| {
+            let entry = entry.ok()?;
+            let metadata = entry.metadata().ok()?;
+            Some(if metadata.is_dir() {
+                get_folder_size(entry.path())
+            } else {
+                metadata.len()
+            })
+        })
+        .sum()
+}
+
+pub fn get_project(path: &PathBuf, excluded: &[String]) -> anyhow::Result<Option<Project>> {
     let name = &path.get_name()?;
-    let size = get_folder_size(path.join("target"))?;
+
+    if excluded.contains(name) {
+        log::debug!("Excluding folder: {name}");
+        return Ok(None);
+    }
 
     // Skip non Rust projects
     if !path.join("Cargo.toml").exists() {
@@ -65,5 +68,6 @@ pub fn get_project(
         return Ok(None);
     }
 
+    let size = get_folder_size(path.join("target"));
     Ok(Some(Project::new(name, path, size)))
 }

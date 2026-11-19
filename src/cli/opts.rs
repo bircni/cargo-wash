@@ -15,7 +15,7 @@ pub struct Options {
     #[clap(short, long, default_value = ".")]
     pub path: PathBuf,
 
-    /// Exclude the provided folder from the size calculation and cleaning
+    /// Exclude folders by name (comma-separated) from all commands
     #[clap(long, short)]
     pub exclude: Option<String>,
 
@@ -60,10 +60,11 @@ where
 {
     fn check_args(&self) -> anyhow::Result<Vec<Project>> {
         let projects: Arc<RwLock<Vec<Project>>> = Arc::new(RwLock::new(vec![]));
-        let path = utility::sanitize_path_input(self.path())?;
+        let path = utility::resolve_root(self.path())?;
+        let excluded = utility::parse_excludes(self.exclude());
 
-        if path.is_dir() {
-            utility::get_project(&path, self.exclude()).map(|p_opt| {
+        {
+            utility::get_project(&path, &excluded).map(|p_opt| {
                 if let Some(project) = p_opt {
                     projects.write().push(project);
                 }
@@ -86,7 +87,7 @@ where
                     entries_vec.iter().par_bridge().for_each(|entry| {
                         let pathbuf = entry.path();
                         if pathbuf.is_dir() {
-                            match utility::get_project(&pathbuf, self.exclude()) {
+                            match utility::get_project(&pathbuf, &excluded) {
                                 Ok(p_opt) => {
                                     if let Some(project) = p_opt {
                                         projects.write().push(project);
@@ -102,8 +103,6 @@ where
                 }
                 Err(error) => log::warn!("Error reading directory: {error}"),
             }
-        } else {
-            anyhow::bail!("The provided path is not a directory.");
         }
 
         Ok(projects.read().to_vec())
