@@ -5,7 +5,7 @@ use crate::{cli::Options, report, runner::Job, scan};
 /// Run `cargo <command>` in every project.
 pub fn run(command: &str, options: &Options) -> anyhow::Result<()> {
     let start = Instant::now();
-    let projects = scan::discover(options)?;
+    let projects = scan::discover(&options.scan)?;
 
     if options.parallel {
         log::warn!(
@@ -56,14 +56,21 @@ fn build_args(options: &Options, command: &str) -> Vec<String> {
 
 #[cfg(test)]
 mod tests {
+    use clap::Parser as _;
+
     use super::build_args;
-    use crate::cli::Options;
+    use crate::cli::{Command, Options};
 
     fn options(parallel: bool, args: &[&str]) -> Options {
-        Options {
-            parallel,
-            args: args.iter().map(|&arg| arg.to_owned()).collect(),
-            ..Default::default()
+        let flags: &[&str] = if parallel { &["--parallel"] } else { &[] };
+        let args = ["cargo-wash", "build"]
+            .iter()
+            .chain(flags)
+            .chain(&["--"])
+            .chain(args);
+        match Command::parse_from(args) {
+            Command::Cargo(cargo) => cargo.parts().1.clone(),
+            Command::Stats(_) | Command::Clean(_) => unreachable!("parsed a cargo command"),
         }
     }
 

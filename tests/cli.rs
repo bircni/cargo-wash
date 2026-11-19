@@ -236,3 +236,52 @@ fn parallel_mode_runs_all_projects() {
     assert!(first.join("target").exists());
     assert!(second.join("target").exists());
 }
+
+#[test]
+fn depth_controls_how_deep_projects_are_searched() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    create_project(tmp_dir.path(), "top", 0);
+    create_project(&tmp_dir.path().join("group"), "nested", 0);
+
+    let shallow = wash(["stats", "--path", path_arg(tmp_dir.path())]);
+    assert_success(&shallow);
+    assert!(
+        stdout(&shallow).contains("1 projects"),
+        "{}",
+        stdout(&shallow)
+    );
+
+    let deep = wash(["stats", "--path", path_arg(tmp_dir.path()), "--depth", "2"]);
+    assert_success(&deep);
+    assert!(stdout(&deep).contains("nested"), "{}", stdout(&deep));
+    assert!(stdout(&deep).contains("2 projects"), "{}", stdout(&deep));
+}
+
+#[test]
+fn respects_a_shared_cargo_target_dir() {
+    let tmp_dir = tempfile::tempdir().unwrap();
+    let projects = tmp_dir.path().join("projects");
+    create_project(&projects, "first", 4096);
+    create_project(&projects, "second", 4096);
+    let shared = tmp_dir.path().join("shared");
+    fs::create_dir_all(&shared).unwrap();
+    fs::write(shared.join("artifact"), vec![0; 1024]).unwrap();
+
+    let output = Command::new(env!("CARGO_BIN_EXE_cargo-wash"))
+        .args(["stats", "--path", path_arg(&projects)])
+        .env("CARGO_TARGET_DIR", &shared)
+        .output()
+        .unwrap();
+    assert_success(&output);
+    let table = stdout(&output);
+    let total = table.lines().find(|line| line.contains("Total")).unwrap();
+    assert!(
+        total.contains("1.00 KB"),
+        "the shared folder must be counted once: {table}"
+    );
+    assert!(
+        printed(&output).contains("share the target folder"),
+        "{}",
+        printed(&output)
+    );
+}

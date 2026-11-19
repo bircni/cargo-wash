@@ -1,7 +1,7 @@
 use crate::{cli::Options, report, runner::Job, scan};
 
 pub fn run(options: &Options) -> anyhow::Result<()> {
-    let mut projects = scan::discover(options)?;
+    let mut projects = scan::discover(&options.scan)?;
     scan::measure(&mut projects);
 
     let outcome = Job {
