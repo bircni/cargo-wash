@@ -3,7 +3,7 @@ use clap::Parser as _;
 use cli::Commands;
 use log::LevelFilter;
 use simplelog::{ColorChoice, ConfigBuilder, TerminalMode};
-use std::{env, process::exit};
+use std::{env, ffi::OsString, process::exit};
 
 mod cli;
 mod commands;
@@ -25,8 +25,19 @@ fn main() {
 
 fn real_main() -> anyhow::Result<()> {
     initialize_logger()?;
-    let args = Commands::parse_from(env::args().filter(|a| a != "wash"));
+    let args = Commands::parse_from(strip_cargo_subcommand(env::args_os()));
     args.run()
+}
+
+/// Drop the `wash` argument cargo inserts when invoked as `cargo wash`.
+///
+/// Only the first argument is considered, so values such as `--path wash` are kept.
+fn strip_cargo_subcommand(args: impl IntoIterator<Item = OsString>) -> Vec<OsString> {
+    let mut args: Vec<OsString> = args.into_iter().collect();
+    if args.get(1).is_some_and(|arg| arg == "wash") {
+        args.remove(1);
+    }
+    args
 }
 
 fn initialize_logger() -> anyhow::Result<()> {
