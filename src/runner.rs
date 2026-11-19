@@ -1,6 +1,6 @@
 //! Runs a cargo command in every project.
 
-use core::fmt::Write as _;
+use core::{fmt::Write as _, num::NonZeroUsize};
 use std::{
     fs,
     path::{Path, PathBuf},
@@ -9,8 +9,11 @@ use std::{
 };
 
 use anyhow::Context as _;
-use indicatif::{ParallelProgressIterator as _, ProgressIterator as _};
-use rayon::iter::{IntoParallelRefIterator as _, ParallelIterator as _};
+use indicatif::ParallelProgressIterator as _;
+use rayon::{
+    ThreadPoolBuilder,
+    iter::{IntoParallelRefIterator as _, ParallelIterator as _},
+};
 
 use crate::{project::Project, report};
 
@@ -22,8 +25,8 @@ pub struct Job<'a> {
     pub args: &'a [String],
     /// Directory to write one log file per project to
     pub log_dir: Option<&'a Path>,
-    /// Run the command in several projects at the same time
-    pub parallel: bool,
+    /// Number of projects the command runs in at the same time
+    pub jobs: NonZeroUsize,
 }
 
 /// The projects a [`Job`] ran in, split by whether the command succeeded
@@ -44,20 +47,18 @@ impl Job<'_> {
             projects.len(),
             format!("Executing cargo {}...", self.command),
         );
-        let run = |project: &'p Project| (project, self.run(project));
-        let results: Vec<(&Project, bool)> = if self.parallel {
+        let pool = ThreadPoolBuilder::new()
+            .num_threads(self.jobs.get())
+            .build()
+            .context("Could not start the worker threads")?;
+        // The order of the projects is kept, with a single job they run one after another.
+        let results: Vec<(&Project, bool)> = pool.install(|| {
             projects
                 .par_iter()
                 .progress_with(progress.clone())
-                .map(run)
+                .map(|project| (project, self.run(project)))
                 .collect()
-        } else {
-            projects
-                .iter()
-                .progress_with(progress.clone())
-                .map(run)
-                .collect()
-        };
+        });
         progress.finish_and_clear();
 
         let (succeeded, failed): (Vec<_>, Vec<_>) =
@@ -100,7 +101,14 @@ impl Job<'_> {
             }
         }
 
-        if !output.status.success() {
+        if output.status.success() {
+            log::debug!(
+                "`cargo {command}` succeeded on {}:\n{}{}",
+                project.name,
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr).trim_end()
+            );
+        } else {
             log::error!(
                 "`cargo {command}` failed on {} ({}):\n{}",
                 project.name,

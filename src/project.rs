@@ -1,9 +1,11 @@
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
+
 use crate::size::Size;
 
 /// A Rust project found on disk.
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Serialize)]
 pub struct Project {
     /// Name of the folder containing the project
     pub name: String,
@@ -11,7 +13,7 @@ pub struct Project {
     pub path: PathBuf,
     /// Folder cargo writes the build artifacts of the project to
     pub target_dir: PathBuf,
-    /// Size of the target folder, zero until it has been measured
+    /// Size of the target folder in bytes, zero until it has been measured
     pub size: Size,
 }
 
